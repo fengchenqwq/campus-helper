@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园百事通对话窗</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e5e6eb;
+    --input-bg: #f4f6f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .back-link {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .page-title { font-size: 17px; font-weight: 600; }
+  .new-chat-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text-secondary);
+    font-size: 13px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .new-chat-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== 居中容器 ===== */
+  .wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    min-height: 0;
+  }
+
+  /* ===== 对话卡片 ===== */
+  .chat-container {
+    width: 100%;
+    max-width: 760px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 35, 41, .06);
+    overflow: hidden;
+  }
+
+  /* ===== 聊天区 ===== */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .msg { display: flex; align-items: flex-start; gap: 10px; }
+  .msg.user { justify-content: flex-end; }
+  .msg .ai-avatar {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 16px;
+  }
+  .bubble {
+    max-width: 76%;
+    padding: 12px 16px;
+    font-size: 15px; line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.ai .bubble {
+    background: var(--input-bg); color: var(--text);
+    border-radius: 4px 16px 16px 16px;
+  }
+  .msg.user .bubble {
+    background: var(--primary); color: #fff;
+    border-radius: 16px 4px 16px 16px;
+  }
+  .cursor { display: inline-block; width: 2px; height: 1em; background: var(--primary); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ===== 底部输入栏 ===== */
+  .input-bar {
+    flex-shrink: 0;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+  }
+  .input-box {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    padding: 12px 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .input-box:focus-within { background: #fff; border-color: var(--primary); }
+  .input-box textarea {
+    flex: 1; border: none; outline: none; resize: none;
+    background: transparent; font-family: inherit;
+    font-size: 15px; line-height: 1.6; color: var(--text);
+    max-height: 120px;
+  }
+  .input-box textarea::placeholder { color: #a8abb2; }
+  .send-btn {
+    flex-shrink: 0; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff;
+    padding: 9px 20px; font-size: 14px; cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .send-btn:hover { background: var(--primary-hover); }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <span class="page-title">校园百事通对话窗</span>
+  <button class="new-chat-btn" onclick="newChat()">＋ 新建对话</button>
+</header>
+
+<!-- 居中容器 -->
+<div class="wrapper">
+  <div class="chat-container">
+    <!-- 聊天区 -->
+    <div class="chat" id="chat">
+      <div class="msg ai">
+        <div class="ai-avatar">校</div>
+        <div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>
+      </div>
+    </div>
+
+    <!-- 底部输入栏 -->
+    <div class="input-bar">
+      <div class="input-box">
+        <textarea id="input" rows="1" placeholder="输入你的问题，按 Enter 发送"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="send()" disabled>发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const chat = document.getElementById('chat');
+
+  // ===== 模拟知识库回答 =====
+  const answers = [
+    { keys: ['选课', '学分'], reply: '选课需在每学期开学初的选课周内完成，本科生每学期原则上修读 15-30 学分，具体以各专业培养方案为准。' },
+    { keys: ['绩点'], reply: '绩点 = Σ(课程绩点 × 学分) ÷ Σ学分，百分制与绩点的对应关系请以教务处最新换算表为准。' },
+    { keys: ['补考', '重修'], reply: '补考面向期末不及格的学生，一般安排在下学期开学初；补考仍不及格需重修该课程。' },
+    { keys: ['图书馆', '座位'], reply: '登录图书馆公众号或预约系统，选择馆区与时间段即可预约座位，入馆后需在规定时间内扫码签到。' },
+    { keys: ['校园网'], reply: '连接校园无线信号后，用学号和统一身份认证密码登录即可；宿舍有线网络需先到网络中心绑定端口。' },
+    { keys: ['食堂', '开放'], reply: '食堂开放时间：早餐 6:30-9:00，午餐 11:00-13:30，晚餐 16:30-19:30，夜宵 20:00-22:00。' },
+    { keys: ['学生证', '补办'], reply: '先到辅导员处开具证明，再携带一寸照片到学生事务中心办理补办，一般 3 个工作日内可取。' },
+    { keys: ['社团', '招新'], reply: '各大社团一般在每学年开学后一个月内集中招新，可关注社团联公众号获取具体时间和报名方式。' },
+    { keys: ['快递'], reply: '校内快递收发地址：学生公寓 1 号楼北侧菜鸟驿站，凭取件码或身份码取件。' },
+    { keys: ['门禁'], reply: '宿舍门禁时间为 23:00-次日 6:00，晚归需登记，具体以各楼栋管理规定为准。' }
+  ];
+
+  function getReply(text) {
+    for (const a of answers) {
+      if (a.keys.some(k => text.includes(k))) return a.reply;
+    }
+    return '这个问题我暂时无法准确回答，建议换一种问法，或前往学校官网 / 相关部门咨询。';
+  }
+
+  // ===== 消息渲染 =====
+  function addMsg(role, text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<div class="ai-avatar">校</div>';
+    html += '<div class="bubble">' + text + '</div>';
+    msg.innerHTML = html;
+    chat.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  // 打字机效果：逐字输出 AI 回复
+  function typeReply(text) {
+    const msg = addMsg('ai', '');
+    const bubble = msg.querySelector('.bubble');
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    bubble.appendChild(cursor);
+    let i = 0;
+    const timer = setInterval(() => {
+      cursor.remove();
+      bubble.appendChild(document.createTextNode(text[i]));
+      bubble.appendChild(cursor);
+      i++;
+      scrollToBottom();
+      if (i >= text.length) { clearInterval(timer); cursor.remove(); }
+    }, 28);
+  }
+
+  function scrollToBottom() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // ===== 发送 =====
+  function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    addMsg('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+    // 模拟 AI 思考延迟后回复
+    setTimeout(() => typeReply(getReply(text)), 500);
+  }
+
+  // 输入框自适应高度 + 回车发送
+  input.addEventListener('input', () => {
+    sendBtn.disabled = input.value.trim() === '';
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // ===== 新建对话 =====
+  function newChat() {
+    chat.innerHTML =
+      '<div class="msg ai">' +
+      '<div class="ai-avatar">校</div>' +
+      '<div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>' +
+      '</div>';
+    input.focus();
+  }
+
+  // ===== 返回主页 =====
+  function goHome() {
+    window.location.href = '主页面-原型.html';
+  }
+
+  // 支持从主页面携带问题跳转过来，自动提问
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  if (q) { input.value = q; send(); }
+</script>
+</body>
+</html>

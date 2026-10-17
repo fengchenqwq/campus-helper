@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;      /* DeepSeek 品牌蓝 */
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --input-bg: #f4f6f8;
+    --border: #e5e6eb;
+    --radius: 24px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部导航 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo svg { width: 20px; height: 20px; }
+  .logo-title { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
+
+  .user-area {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; padding: 5px 10px; border-radius: 20px;
+    transition: background .15s;
+  }
+  .user-area:hover { background: #f2f3f5; }
+  .username { font-size: 14px; color: var(--text-secondary); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #4D6BFE, #8b5cf6);
+    color: #fff; font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* 未登录：头像位置显示「登录」按钮 */
+  .avatar.login-avatar {
+    width: auto; min-width: 34px; padding: 0 15px;
+    border-radius: 17px;
+    background: var(--primary);
+    font-size: 14px;
+  }
+
+  /* ===== 中部主体 ===== */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .welcome { font-size: 30px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 34px; text-align: center; }
+
+  .input-box {
+    width: 100%;
+    max-width: 720px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 16px 18px 12px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .input-box:focus-within {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px rgba(77, 107, 254, .12);
+  }
+  .input-box textarea {
+    width: 100%;
+    border: none; outline: none; resize: none;
+    background: transparent;
+    font-family: inherit; font-size: 16px; line-height: 1.6;
+    color: var(--text);
+    min-height: 26px; max-height: 160px;
+  }
+  .input-box textarea::placeholder { color: #a8abb2; }
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px;
+  }
+  .toolbar-left { display: flex; gap: 6px; }
+  .tool-btn {
+    width: 34px; height: 34px; border: none; border-radius: 10px;
+    background: transparent; cursor: pointer; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .tool-btn:hover { background: #e8eaed; }
+  .send-btn {
+    border: none; border-radius: 12px;
+    background: var(--primary); color: #fff;
+    padding: 8px 20px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s, opacity .15s;
+  }
+  .send-btn:hover { background: var(--primary-hover); }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .hint { margin-top: 14px; font-size: 12px; color: #a8abb2; }
+
+  /* ===== 最近历史记录 ===== */
+  .history-section {
+    width: 100%;
+    max-width: 720px;
+    margin-top: 24px;
+    text-align: left;
+  }
+  .history-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .history-item:hover { border-color: var(--primary); background: #fafbff; }
+  .history-item-title {
+    flex: 1; font-size: 14px; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .history-item-time { flex-shrink: 0; font-size: 12px; color: #a8abb2; }
+
+  /* ===== 底部 ===== */
+  footer {
+    padding: 16px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .history-link {
+    font-size: 14px; color: var(--primary);
+    text-decoration: none; cursor: pointer;
+  }
+  .history-link:hover { text-decoration: underline; }
+
+  /* ===== 弹窗 ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    width: 90%; max-width: 380px;
+    background: #fff; border-radius: 16px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.15);
+    text-align: center;
+  }
+  .modal-icon { font-size: 40px; margin-bottom: 12px; }
+  .modal-text { font-size: 15px; line-height: 1.6; color: var(--text); margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 12px; }
+  .modal-actions button {
+    flex: 1; padding: 11px;
+    border-radius: 12px; font-size: 15px; cursor: pointer;
+    border: none; transition: background .15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--input-bg); color: var(--text-secondary); }
+  .btn-secondary:hover { background: #e8eaed; }
+</style>
+</head>
+<body>
+
+<!-- 顶部：logo + 标题 / 右上角用户名 + 头像 -->
+<header>
+  <div class="logo-area">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
+              fill="#fff"/>
+        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
+      </svg>
+    </div>
+    <span class="logo-title">校园百事通助手</span>
+  </div>
+  <div class="user-area" onclick="goLogin()" title="登录 / 注册">
+    <span class="username">未注册</span>
+    <div class="avatar login-avatar">登录</div>
+  </div>
+</header>
+
+<!-- 中部：输入对话框 -->
+<main>
+  <h1 class="welcome">你好，我是校园百事通助手</h1>
+  <p class="subtitle">校园问题，随问随答</p>
+
+  <div class="input-box">
+    <textarea id="question" rows="1" placeholder="输入你的校园问题，按 Enter 发送"></textarea>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="tool-btn" onclick="voiceInput()" title="语音输入">🎤</button>
+        <button class="tool-btn" onclick="photoInput()" title="拍照识别">📷</button>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="send()" disabled>发送</button>
+    </div>
+  </div>
+  <p class="hint">Enter 发送 · Shift+Enter 换行</p>
+
+  <!-- 最近历史记录 -->
+  <div class="history-section">
+    <div class="history-title">最近对话</div>
+    <div class="history-list">
+      <div class="history-item" onclick="openConversation(1)">
+        <span class="history-item-title">图书馆怎么预约座位</span>
+        <span class="history-item-time">2026-10-17</span>
+      </div>
+      <div class="history-item" onclick="openConversation(2)">
+        <span class="history-item-title">补考与重修政策</span>
+        <span class="history-item-time">2026-10-16</span>
+      </div>
+      <div class="history-item" onclick="openConversation(3)">
+        <span class="history-item-title">绩点计算方法</span>
+        <span class="history-item-time">2026-10-15</span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 底部：查看历史记录 -->
+<footer>
+  <a class="history-link" onclick="goHistory()">查看历史记录</a>
+</footer>
+
+<!-- 未登录提示弹窗 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-icon">🔒</div>
+    <p class="modal-text">您还未进行登录，暂时无法查看历史记录，请先去登录/注册！</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="goLogin()">登录/注册</button>
+      <button class="btn-secondary" onclick="closeModal()">下次一定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 退出登录确认弹窗 -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal">
+    <div class="modal-icon">👋</div>
+    <p class="modal-text">确定要退出登录吗？</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="doLogout()">退出登录</button>
+      <button class="btn-secondary" onclick="closeLogoutModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('question');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // 输入内容后启用发送按钮
+  input.addEventListener('input', () => {
+    sendBtn.disabled = input.value.trim() === '';
+  });
+
+  // 回车发送，Shift+Enter 换行
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // 发送：输入文本后跳转到 AI 对话页面
+  function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    window.location.href = '对话页-原型.html?q=' + encodeURIComponent(text);
+  }
+
+  // 点击历史记录 → 回溯对话
+  function openConversation(id) {
+    window.location.href = '对话页-原型.html?conversation_id=' + id;
+  }
+
+  // 语音输入
+  function voiceInput() {
+    // 真实跳转/唤起语音：window.location.href = '对话页-原型.html?mode=voice';
+    alert('语音输入（原型占位）：语音转文字后提问');
+  }
+
+  // 拍照识别
+  function photoInput() {
+    // 真实跳转/唤起拍照：window.location.href = '对话页-原型.html?mode=photo';
+    alert('拍照识别（原型占位）：拍照识别图中内容后提问');
+  }
+
+  // 点击右上角（未登录）→ 跳转登录/注册页面
+  function goLogin() {
+    window.location.href = '登录注册-原型.html';
+  }
+
+  // 点击查看历史记录（未登录）→ 弹出登录提示
+  function goHistory() {
+    document.getElementById('loginModal').classList.add('show');
+  }
+
+  // 关闭弹窗
+  function closeModal() {
+    document.getElementById('loginModal').classList.remove('show');
+  }
+
+  // 退出登录（原型占位）
+  function doLogout() {
+    alert('退出登录（原型占位）');
+  }
+
+  function closeLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('show');
+  }
+</script>
+</body>
+</html>

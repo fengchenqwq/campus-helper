@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: school-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: |
+      pip install -r requirements.txt
+      apt-get update && apt-get install -y ffmpeg
+    startCommand: python init_db.py && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: COZE_API_TOKEN
+        sync: false
+      - key: COZE_BOT_ID
+        sync: false

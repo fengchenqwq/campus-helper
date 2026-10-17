@@ -1,0 +1,15 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+
+# 数据库（运行时重建，含明文密码/用户数据，不提交）
+*.db
+
+# 测试临时文件
+test/*.txt
+test/*.png
+test/*.wav
+
+# 系统文件
+.DS_Store

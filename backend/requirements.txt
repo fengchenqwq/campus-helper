@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+cozepy
+python-multipart
+openai-whisper
+python-docx
+pypdf
+python-pptx
+openpyxl
+xlrd
+pymupdf
+pytesseract
+jieba

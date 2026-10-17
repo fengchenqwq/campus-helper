@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 / 注册 - 校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --input-bg: #f4f6f8;
+    --border: #e5e6eb;
+    --error: #e5484d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 8px;
+  }
+  .back-link {
+    position: absolute;
+    left: 20px; top: 20px;
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo svg { width: 22px; height: 22px; }
+  .logo-title { font-size: 22px; font-weight: 600; letter-spacing: .5px; }
+  .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
+
+  /* ===== 主体卡片 ===== */
+  main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px 40px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    height: fit-content;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 32px 32px;
+    background: var(--bg);
+    box-shadow: 0 8px 32px rgba(31, 35, 41, .06);
+  }
+
+  /* 选项卡 */
+  .tabs {
+    position: relative;
+    display: flex;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    border: none; background: transparent;
+    padding: 12px 0;
+    font-size: 16px; color: var(--text-secondary);
+    cursor: pointer; transition: color .2s;
+  }
+  .tab.active { color: var(--text); font-weight: 600; }
+  .tab-indicator {
+    position: absolute; bottom: -1px; left: 0;
+    width: 50%; height: 2px;
+    background: var(--primary);
+    border-radius: 2px;
+    transition: left .3s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* 面板切换 */
+  .panel-container { position: relative; transition: height .3s cubic-bezier(.4,0,.2,1); }
+  .panel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    opacity: 0;
+    transform: translateX(16px);
+    pointer-events: none;
+    transition: opacity .28s ease, transform .28s ease;
+  }
+  .panel.active {
+    position: relative;
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+  .panel.exit { transform: translateX(-16px); opacity: 0; }
+
+  /* 表单字段 */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 13px; color: var(--text-secondary); }
+  .field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--input-bg);
+    font-size: 15px; font-family: inherit; color: var(--text);
+    outline: none;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .field input:focus {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(77, 107, 254, .12);
+  }
+  .field input.invalid { border-color: var(--error); }
+  .field .error {
+    font-size: 12px; color: var(--error);
+    min-height: 0; display: none;
+  }
+  .field .error.show { display: block; }
+
+  /* 发光按钮 */
+  .glow-btn {
+    width: 100%;
+    padding: 13px;
+    border: none; border-radius: 12px;
+    font-size: 16px; font-weight: 600; color: #fff;
+    background: linear-gradient(135deg, #4D6BFE, #7B6BFF);
+    box-shadow: 0 0 18px rgba(77, 107, 254, .45), 0 4px 12px rgba(77, 107, 254, .28);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: box-shadow .2s, transform .1s;
+  }
+  .glow-btn:hover {
+    box-shadow: 0 0 28px rgba(77, 107, 254, .68), 0 6px 18px rgba(77, 107, 254, .4);
+  }
+  .glow-btn:active { transform: scale(.98); }
+  .glow-btn:disabled { opacity: .7; cursor: not-allowed; }
+
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.45);
+    border-top-color: #fff;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 底部切换链接 */
+  .switch-hint { text-align: center; font-size: 13px; color: var(--text-secondary); }
+  .switch-hint a { color: var(--primary); cursor: pointer; text-decoration: none; }
+  .switch-hint a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- 顶部：标题 + 副标题 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <div class="logo-area">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
+              fill="#fff"/>
+        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
+      </svg>
+    </div>
+    <span class="logo-title">校园百事通助手</span>
+  </div>
+  <p class="page-subtitle">登录 / 注册</p>
+</header>
+
+<main>
+  <div class="card">
+    <!-- 选项卡 -->
+    <div class="tabs">
+      <button class="tab active" data-tab="login">登录</button>
+      <button class="tab" data-tab="register">注册</button>
+      <div class="tab-indicator" id="indicator"></div>
+    </div>
+
+    <div class="panel-container">
+      <!-- 登录表单 -->
+      <form class="panel active" id="loginForm" novalidate>
+        <div class="field">
+          <label for="loginUser">用户名</label>
+          <input type="text" id="loginUser" placeholder="请输入用户名" autocomplete="username">
+          <span class="error" id="loginUserErr"></span>
+        </div>
+        <div class="field">
+          <label for="loginPwd">密码</label>
+          <input type="password" id="loginPwd" placeholder="请输入密码" autocomplete="current-password">
+          <span class="error" id="loginPwdErr"></span>
+        </div>
+        <button type="submit" class="glow-btn" id="loginBtn">登录</button>
+        <p class="switch-hint">没有账号？<a onclick="switchTab('register')">去注册</a></p>
+      </form>
+
+      <!-- 注册表单 -->
+      <form class="panel" id="registerForm" novalidate>
+        <div class="field">
+          <label for="regUser">用户名</label>
+          <input type="text" id="regUser" placeholder="3-20位字母、数字或下划线" autocomplete="username">
+          <span class="error" id="regUserErr"></span>
+        </div>
+        <div class="field">
+          <label for="regEmail">邮箱</label>
+          <input type="text" id="regEmail" placeholder="请输入邮箱" autocomplete="email">
+          <span class="error" id="regEmailErr"></span>
+        </div>
+        <div class="field">
+          <label for="regPwd">密码</label>
+          <input type="password" id="regPwd" placeholder="6-20个字符" autocomplete="new-password">
+          <span class="error" id="regPwdErr"></span>
+        </div>
+        <div class="field">
+          <label for="regPwd2">确认密码</label>
+          <input type="password" id="regPwd2" placeholder="请再次输入密码" autocomplete="new-password">
+          <span class="error" id="regPwd2Err"></span>
+        </div>
+        <button type="submit" class="glow-btn" id="regBtn">注册</button>
+        <p class="switch-hint">已有账号？<a onclick="switchTab('login')">去登录</a></p>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+  // 返回主页面
+  function goHome() {
+    window.location.href = '主页面-原型.html';
+  }
+
+  // ===== 选项卡切换 =====
+  const indicator = document.getElementById('indicator');
+  const tabs = document.querySelectorAll('.tab');
+  const panels = { login: document.getElementById('loginForm'),
+                   register: document.getElementById('registerForm') };
+
+  function switchTab(name) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    indicator.style.left = name === 'login' ? '0%' : '50%';
+    Object.keys(panels).forEach(key => {
+      const p = panels[key];
+      if (key === name) {
+        p.classList.add('active');
+        p.classList.remove('exit');
+      } else {
+        p.classList.add('exit');
+        p.classList.remove('active');
+      }
+    });
+    clearErrors(name);
+  }
+  tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  // ===== 校验辅助 =====
+  function setError(id, msg) {
+    const input = document.getElementById(id);
+    const err = document.getElementById(id + 'Err');
+    input.classList.toggle('invalid', !!msg);
+    err.textContent = msg || '';
+    err.classList.toggle('show', !!msg);
+  }
+  function clearErrors(name) {
+    const ids = name === 'login'
+      ? ['loginUser', 'loginPwd']
+      : ['regUser', 'regEmail', 'regPwd', 'regPwd2'];
+    ids.forEach(id => setError(id, ''));
+  }
+
+  // 模拟加载 + 提交反馈
+  function simulateSubmit(btn, label, successMsg) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>' + label + '中...';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = label;
+      alert(successMsg);
+    }, 1200);
+  }
+
+  // ===== 登录校验 =====
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPwd').value;
+    let ok = true;
+    if (!u) { setError('loginUser', '用户名不能为空'); ok = false; }
+    else setError('loginUser', '');
+    if (!p) { setError('loginPwd', '密码不能为空'); ok = false; }
+    else setError('loginPwd', '');
+
+    if (!ok) return;
+
+    // 简单登录判断：admin / 123456 表示登录成功
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>登录中...';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '登录';
+      if (u === 'admin' && p === '123456') {
+        window.location.href = '主页面-原型.html';
+      } else {
+        setError('loginPwd', '用户名或密码错误');
+      }
+    }, 800);
+  });
+
+  // ===== 注册校验 =====
+  document.getElementById('registerForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const user = document.getElementById('regUser').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pwd = document.getElementById('regPwd').value;
+    const pwd2 = document.getElementById('regPwd2').value;
+    const userRe = /^[A-Za-z0-9_]{3,20}$/;
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let ok = true;
+
+    if (!user) { setError('regUser', '用户名不能为空'); ok = false; }
+    else if (!userRe.test(user)) { setError('regUser', '用户名需为3-20位字母、数字或下划线'); ok = false; }
+    else setError('regUser', '');
+
+    if (!email) { setError('regEmail', '邮箱不能为空'); ok = false; }
+    else if (!emailRe.test(email)) { setError('regEmail', '邮箱格式不正确'); ok = false; }
+    else setError('regEmail', '');
+
+    if (!pwd) { setError('regPwd', '密码不能为空'); ok = false; }
+    else if (pwd.length < 6 || pwd.length > 20) { setError('regPwd', '密码需为6-20个字符'); ok = false; }
+    else setError('regPwd', '');
+
+    if (!pwd2) { setError('regPwd2', '请再次输入密码'); ok = false; }
+    else if (pwd !== pwd2) { setError('regPwd2', '两次密码不一致'); ok = false; }
+    else setError('regPwd2', '');
+
+    if (ok) simulateSubmit(document.getElementById('regBtn'), '注册', '注册成功（原型），跳转登录页');
+  });
+</script>
+</body>
+</html>

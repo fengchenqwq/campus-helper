@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;      /* DeepSeek 品牌蓝 */
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --input-bg: #f4f6f8;
+    --border: #e5e6eb;
+    --radius: 24px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部导航 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .logo-area { display: flex; align-items: center; gap: 10px; }
+  .logo {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo svg { width: 20px; height: 20px; }
+  .logo-title { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
+
+  .user-area {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; padding: 5px 10px; border-radius: 20px;
+    transition: background .15s;
+  }
+  .user-area:hover { background: #f2f3f5; }
+  .username { font-size: 14px; color: var(--text-secondary); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #4D6BFE, #8b5cf6);
+    color: #fff; font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* 未登录：头像位置显示「登录」按钮 */
+  .avatar.login-avatar {
+    width: auto; min-width: 34px; padding: 0 15px;
+    border-radius: 17px;
+    background: var(--primary);
+    font-size: 14px;
+  }
+
+  /* ===== 中部主体 ===== */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .welcome { font-size: 30px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 34px; text-align: center; }
+
+  .input-box {
+    width: 100%;
+    max-width: 720px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    padding: 16px 18px 12px;
+    transition: border-color .15s, background .15s, box-shadow .15s;
+  }
+  .input-box:focus-within {
+    background: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px rgba(77, 107, 254, .12);
+  }
+  .input-box textarea {
+    width: 100%;
+    border: none; outline: none; resize: none;
+    background: transparent;
+    font-family: inherit; font-size: 16px; line-height: 1.6;
+    color: var(--text);
+    min-height: 26px; max-height: 160px;
+  }
+  .input-box textarea::placeholder { color: #a8abb2; }
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px;
+  }
+  .toolbar-left { display: flex; gap: 6px; }
+  .tool-btn {
+    width: 34px; height: 34px; border: none; border-radius: 10px;
+    background: transparent; cursor: pointer; font-size: 17px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .tool-btn:hover { background: #e8eaed; }
+  .send-btn {
+    border: none; border-radius: 12px;
+    background: var(--primary); color: #fff;
+    padding: 8px 20px; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background .15s, opacity .15s;
+  }
+  .send-btn:hover { background: var(--primary-hover); }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .hint { margin-top: 14px; font-size: 12px; color: #a8abb2; }
+
+  /* ===== 最近历史记录 ===== */
+  .history-section {
+    width: 100%;
+    max-width: 720px;
+    margin-top: 24px;
+    text-align: left;
+  }
+  .history-title { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .history-item:hover { border-color: var(--primary); background: #fafbff; }
+  .history-item-title {
+    flex: 1; font-size: 14px; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .history-item-time { flex-shrink: 0; font-size: 12px; color: #a8abb2; }
+
+  /* ===== 底部 ===== */
+  footer {
+    padding: 16px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .history-link {
+    font-size: 14px; color: var(--primary);
+    text-decoration: none; cursor: pointer;
+  }
+  .history-link:hover { text-decoration: underline; }
+
+  /* ===== 弹窗 ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    width: 90%; max-width: 380px;
+    background: #fff; border-radius: 16px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.15);
+    text-align: center;
+  }
+  .modal-icon { font-size: 40px; margin-bottom: 12px; }
+  .modal-text { font-size: 15px; line-height: 1.6; color: var(--text); margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 12px; }
+  .modal-actions button {
+    flex: 1; padding: 11px;
+    border-radius: 12px; font-size: 15px; cursor: pointer;
+    border: none; transition: background .15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-secondary { background: var(--input-bg); color: var(--text-secondary); }
+  .btn-secondary:hover { background: #e8eaed; }
+</style>
+</head>
+<body>
+
+<!-- 顶部：logo + 标题 / 右上角用户名 + 头像 -->
+<header>
+  <div class="logo-area">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
+              fill="#fff"/>
+        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
+        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
+      </svg>
+    </div>
+    <span class="logo-title">校园百事通助手</span>
+  </div>
+  <div class="user-area" id="userArea" onclick="onUserClick()"></div>
+</header>
+
+<!-- 中部：输入对话框 -->
+<main>
+  <h1 class="welcome">你好，我是校园百事通助手</h1>
+  <p class="subtitle">校园问题，随问随答</p>
+
+  <div class="input-box">
+    <textarea id="question" rows="1" placeholder="输入你的校园问题，按 Enter 发送"></textarea>
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <button class="tool-btn" onclick="voiceInput()" title="语音输入">🎤</button>
+        <button class="tool-btn" onclick="photoInput()" title="拍照识别">📷</button>
+      </div>
+      <button class="send-btn" id="sendBtn" onclick="send()" disabled>发送</button>
+    </div>
+  </div>
+  <p class="hint">Enter 发送 · Shift+Enter 换行</p>
+
+  <!-- 最近历史记录 -->
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-title">最近对话</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</main>
+
+<!-- 底部：查看历史记录 -->
+<footer>
+  <a class="history-link" onclick="goHistory()">查看历史记录</a>
+</footer>
+
+<!-- 未登录提示弹窗 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-icon">🔒</div>
+    <p class="modal-text">您还未进行登录，暂时无法查看历史记录，请先去登录/注册！</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="goLogin()">登录/注册</button>
+      <button class="btn-secondary" onclick="closeModal()">下次一定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 退出登录确认弹窗 -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal">
+    <div class="modal-icon">👋</div>
+    <p class="modal-text">确定要退出登录吗？</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="doLogout()">退出登录</button>
+      <button class="btn-secondary" onclick="closeLogoutModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('question');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // ===== 右上角用户区：根据登录状态渲染 =====
+  function renderUserArea() {
+    const username = localStorage.getItem('username');
+    const userArea = document.getElementById('userArea');
+    if (username) {
+      // 已登录：显示用户名 + 头像（用户名最后一个字）
+      userArea.innerHTML =
+        '<span class="username">' + username + '</span>' +
+        '<div class="avatar">' + username.slice(-1) + '</div>';
+      userArea.title = username;
+    } else {
+      // 未登录：显示「未注册」+「登录」按钮
+      userArea.innerHTML =
+        '<span class="username">未注册</span>' +
+        '<div class="avatar login-avatar">登录</div>';
+      userArea.title = '登录 / 注册';
+    }
+  }
+
+  function onUserClick() {
+    if (localStorage.getItem('username')) {
+      // 已登录：弹出退出登录确认
+      document.getElementById('logoutModal').classList.add('show');
+    } else {
+      goLogin();
+    }
+  }
+
+  // 输入内容后启用发送按钮
+  input.addEventListener('input', () => {
+    sendBtn.disabled = input.value.trim() === '';
+  });
+
+  // 回车发送，Shift+Enter 换行
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // 发送：输入文本后跳转到 AI 对话页面
+  function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    window.location.href = '对话页.html?q=' + encodeURIComponent(text);
+  }
+
+  // 语音输入
+  function voiceInput() {
+    alert('语音输入（待开发）：语音转文字后提问');
+  }
+
+  // 拍照识别
+  function photoInput() {
+    alert('拍照识别（待开发）：拍照识别图中内容后提问');
+  }
+
+  // 跳转登录/注册页面
+  function goLogin() {
+    window.location.href = '登录注册.html';
+  }
+
+  // 点击查看历史记录：已登录跳历史记录页，未登录弹窗提示
+  function goHistory() {
+    if (localStorage.getItem('username')) {
+      window.location.href = '历史记录.html';
+    } else {
+      document.getElementById('loginModal').classList.add('show');
+    }
+  }
+
+  // 关闭弹窗
+  function closeModal() {
+    document.getElementById('loginModal').classList.remove('show');
+  }
+
+  // 退出登录：清除登录态并刷新
+  function doLogout() {
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+    window.location.reload();
+  }
+
+  function closeLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('show');
+  }
+
+  // ===== 最近历史记录 =====
+  const BASE_URL = 'https://school-backend.onrender.com/api';
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function loadRecentHistory() {
+    const userId = localStorage.getItem('user_id');
+    if (!userId) return; // 未登录不显示
+    try {
+      const resp = await fetch(BASE_URL + '/history?user_id=' + userId + '&limit=3');
+      const result = await resp.json();
+      if (result.code === 0 && result.data && result.data.length > 0) {
+        renderHistory(result.data);
+      }
+    } catch (err) {
+      // 静默失败
+    }
+  }
+
+  function renderHistory(list) {
+    const section = document.getElementById('historySection');
+    const listEl = document.getElementById('historyList');
+    listEl.innerHTML = list.map(item =>
+      '<div class="history-item" onclick="openConversation(' + item.conversation_id + ')">' +
+      '<span class="history-item-title">' + escapeHtml(item.title || '（无标题）') + '</span>' +
+      '<span class="history-item-time">' + escapeHtml(item.created_at || '') + '</span>' +
+      '</div>'
+    ).join('');
+    section.style.display = 'block';
+  }
+
+  function openConversation(id) {
+    window.location.href = '对话页.html?conversation_id=' + id;
+  }
+
+  // 初始化右上角
+  renderUserArea();
+  loadRecentHistory();
+</script>
+</body>
+</html>

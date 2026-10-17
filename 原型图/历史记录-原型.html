@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史记录 - 校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --border: #e5e6eb;
+    --input-bg: #f4f6f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-link {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .page-title { font-size: 18px; font-weight: 600; }
+
+  /* ===== 主体 ===== */
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+
+  /* 选项卡 */
+  .tabs {
+    position: relative;
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .tab {
+    flex: 1;
+    border: none; background: transparent;
+    padding: 12px 0;
+    font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; transition: color .2s;
+  }
+  .tab.active { color: var(--text); font-weight: 600; }
+  .tab-indicator {
+    position: absolute; bottom: -1px; left: 0;
+    width: 20%; height: 2px;
+    background: var(--primary); border-radius: 2px;
+    transition: left .3s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* 历史记录保留说明 */
+  .history-note {
+    font-size: 12px; color: #a8abb2;
+    text-align: center; margin-bottom: 16px;
+  }
+
+  /* 记录列表 */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .record {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+    cursor: pointer;
+  }
+  .record:hover { border-color: #c9cce0; }
+  .record.open { border-color: var(--primary); box-shadow: 0 4px 16px rgba(77,107,254,.08); }
+
+  .record-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+  }
+  .record-cat {
+    flex-shrink: 0;
+    font-size: 12px; color: var(--primary);
+    background: rgba(77,107,254,.1);
+    padding: 2px 8px; border-radius: 8px;
+  }
+  .record-summary { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .record-time { flex-shrink: 0; font-size: 12px; color: #a8abb2; }
+  .record-arrow {
+    flex-shrink: 0; width: 18px; height: 18px;
+    color: #a8abb2; transition: transform .25s;
+  }
+  .record.open .record-arrow { transform: rotate(180deg); }
+
+  .record-detail {
+    max-height: 0; overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .record-detail-inner {
+    padding: 4px 16px 16px;
+    margin: 0 16px;
+    border-top: 1px dashed var(--border);
+    padding-top: 14px;
+    font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+    white-space: pre-line;
+  }
+  .replay-btn {
+    margin-top: 12px; padding: 8px 0; width: 100%;
+    border: 1px solid var(--primary); border-radius: 10px;
+    background: #fff; color: var(--primary); font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .replay-btn:hover { background: var(--primary); color: #fff; }
+
+  /* 空记录 */
+  .empty {
+    display: none;
+    flex-direction: column; align-items: center; gap: 12px;
+    padding: 60px 0; color: #a8abb2;
+  }
+  .empty.show { display: flex; }
+  .empty .empty-icon { font-size: 44px; opacity: .6; }
+  .empty p { font-size: 14px; }
+
+  /* 分页 */
+  .pagination {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-top: 24px;
+  }
+  .page-btn {
+    padding: 8px 18px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+  .page-btn:disabled { color: #c1c4cc; background: #f7f8fa; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <span class="page-title">历史记录</span>
+</header>
+
+<main>
+  <!-- 选项卡 -->
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-cat="全部">全部</button>
+    <button class="tab" data-cat="教务">教务</button>
+    <button class="tab" data-cat="生活">生活</button>
+    <button class="tab" data-cat="社团">社团</button>
+    <button class="tab" data-cat="FAQ">FAQ</button>
+    <div class="tab-indicator" id="indicator"></div>
+  </div>
+
+  <!-- 历史记录保留说明 -->
+  <p class="history-note">仅保留用户提问超过 3 次、字数超过 100 字的会话记录</p>
+
+  <!-- 记录列表 -->
+  <div class="list" id="list"></div>
+
+  <!-- 空记录提示 -->
+  <div class="empty" id="empty">
+    <span class="empty-icon">🗂️</span>
+    <p>暂无历史记录</p>
+  </div>
+
+  <!-- 分页 -->
+  <div class="pagination">
+    <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+    <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+    <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+  </div>
+</main>
+
+<script>
+  // ===== 模拟数据 =====
+  const records = [
+    { id: 1, cat: '教务', time: '2026-10-17 14:32', summary: '选课规则和学分要求',
+      detail: '问：选课规则和学分要求是什么？\n答：选课需在每学期开学初的选课周内完成；本科生每学期原则上修读不低于 15 学分、不高于 30 学分，具体以各专业培养方案为准。' },
+    { id: 2, cat: '教务', time: '2026-10-15 10:20', summary: '绩点计算方法',
+      detail: '问：绩点是怎么算的？\n答：绩点 = Σ(课程绩点 × 学分) ÷ Σ学分。百分制与绩点的对应关系请以教务处最新公布的换算表为准。' },
+    { id: 3, cat: '教务', time: '2026-10-12 08:05', summary: '补考与重修政策',
+      detail: '问：补考和重修有什么区别？\n答：补考面向期末成绩不及格的学生，一般安排在下学期开学初；补考仍不及格需重修该课程并重新计费。' },
+    { id: 4, cat: '生活', time: '2026-10-16 09:15', summary: '图书馆怎么预约座位',
+      detail: '问：图书馆怎么预约座位？\n答：登录图书馆公众号或预约系统，选择馆区与时间段即可预约；入馆后需在规定时间内扫码签到。' },
+    { id: 5, cat: '生活', time: '2026-10-13 18:40', summary: '校园网连接教程',
+      detail: '问：校园网怎么连？\n答：连接校园无线信号后，用学号和统一身份认证密码登录即可；宿舍有线网络需先在网络中心绑定端口。' },
+    { id: 6, cat: 'FAQ', time: '2026-10-14 11:20', summary: '学生证丢了怎么补办',
+      detail: '问：学生证丢了怎么补办？\n答：先到辅导员处开具证明，再携带一寸照片到学生事务中心办理补办，一般 3 个工作日内可取。' }
+  ];
+
+  const cats = ['全部', '教务', '生活', '社团', 'FAQ'];
+  const pageSize = 3;
+  let currentCat = '全部';
+  let currentPage = 1;
+  let expanded = new Set();
+
+  const listEl = document.getElementById('list');
+  const emptyEl = document.getElementById('empty');
+  const indicator = document.getElementById('indicator');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageInfo = document.getElementById('pageInfo');
+
+  // ===== 渲染 =====
+  function render() {
+    const filtered = currentCat === '全部' ? records : records.filter(r => r.cat === currentCat);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    // 空记录提示
+    if (filtered.length === 0) {
+      listEl.innerHTML = '';
+      emptyEl.classList.add('show');
+    } else {
+      emptyEl.classList.remove('show');
+      const start = (currentPage - 1) * pageSize;
+      const pageData = filtered.slice(start, start + pageSize);
+      listEl.innerHTML = pageData.map(r => {
+        const open = expanded.has(r.id);
+        return `
+          <div class="record ${open ? 'open' : ''}" data-id="${r.id}">
+            <div class="record-head" onclick="toggle(${r.id})">
+              <span class="record-cat">${r.cat}</span>
+              <span class="record-summary">${r.summary}</span>
+              <span class="record-time">${r.time}</span>
+              <svg class="record-arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="record-detail" style="max-height:${open ? '300px' : '0'}">
+              <div class="record-detail-inner">${r.detail}<button class="replay-btn" onclick="replay(${r.id})">回溯对话</button></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // 分页
+    pageInfo.textContent = `第 ${currentPage} / ${totalPages} 页`;
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  // ===== 展开 / 收起 =====
+  function toggle(id) {
+    if (expanded.has(id)) expanded.delete(id);
+    else expanded.add(id);
+    render();
+  }
+
+  // ===== 切换选项卡 =====
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    const cat = tab.dataset.cat;
+    currentCat = cat;
+    currentPage = 1;
+    expanded.clear();
+
+    const tabs = document.querySelectorAll('.tab');
+    const idx = cats.indexOf(cat);
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.cat === cat));
+    indicator.style.left = (idx * 20) + '%';
+
+    render();
+  });
+
+  // ===== 分页 =====
+  function changePage(delta) {
+    currentPage += delta;
+    render();
+  }
+
+  // ===== 回溯对话 =====
+  function replay(id) {
+    window.location.href = '对话页-原型.html?conversation_id=' + id;
+  }
+
+  // ===== 返回主页 =====
+  function goHome() {
+    window.location.href = '主页面-原型.html';
+  }
+
+  // 初始化
+  render();
+</script>
+</body>
+</html>
