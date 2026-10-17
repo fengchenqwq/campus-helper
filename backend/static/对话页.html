@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园百事通对话窗</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e5e6eb;
+    --input-bg: #f4f6f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .back-link {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .page-title { font-size: 17px; font-weight: 600; }
+  .new-chat-btn {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text-secondary);
+    font-size: 13px; cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .new-chat-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* ===== 居中容器 ===== */
+  .wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    min-height: 0;
+  }
+
+  /* ===== 对话卡片 ===== */
+  .chat-container {
+    width: 100%;
+    max-width: 760px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 35, 41, .06);
+    overflow: hidden;
+  }
+
+  /* ===== 聊天区 ===== */
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .msg { display: flex; align-items: flex-start; gap: 10px; }
+  .msg.user { justify-content: flex-end; }
+  .msg .ai-avatar {
+    width: 32px; height: 32px; border-radius: 10px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 16px;
+  }
+  .bubble {
+    max-width: 76%;
+    padding: 12px 16px;
+    font-size: 15px; line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.ai .bubble {
+    background: var(--input-bg); color: var(--text);
+    border-radius: 4px 16px 16px 16px;
+  }
+  .msg.user .bubble {
+    background: var(--primary); color: #fff;
+    border-radius: 16px 4px 16px 16px;
+  }
+  .cursor { display: inline-block; width: 2px; height: 1em; background: var(--primary); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 思考中三点动画 */
+  .typing-dots { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #a8abb2;
+    animation: typing-bounce 1.4s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* ===== 底部输入栏 ===== */
+  .input-bar {
+    flex-shrink: 0;
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+  }
+  .input-box {
+    display: flex; align-items: flex-end; gap: 10px;
+    background: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    padding: 12px 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .input-box:focus-within { background: #fff; border-color: var(--primary); }
+  .input-box textarea {
+    flex: 1; border: none; outline: none; resize: none;
+    background: transparent; font-family: inherit;
+    font-size: 15px; line-height: 1.6; color: var(--text);
+    max-height: 120px;
+  }
+  .input-box textarea::placeholder { color: #a8abb2; }
+  .send-btn {
+    flex-shrink: 0; border: none; border-radius: 14px;
+    background: var(--primary); color: #fff;
+    padding: 9px 20px; font-size: 14px; cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .send-btn:hover { background: var(--primary-hover); }
+  .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <span class="page-title">校园百事通对话窗</span>
+  <button class="new-chat-btn" onclick="newChat()">＋ 新建对话</button>
+</header>
+
+<!-- 居中容器 -->
+<div class="wrapper">
+  <div class="chat-container">
+    <!-- 聊天区 -->
+    <div class="chat" id="chat">
+      <div class="msg ai">
+        <div class="ai-avatar">校</div>
+        <div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>
+      </div>
+    </div>
+
+    <!-- 底部输入栏 -->
+    <div class="input-bar">
+      <div class="input-box">
+        <textarea id="input" rows="1" placeholder="输入你的问题，按 Enter 发送"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="send()" disabled>发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = '/api';
+  const input = document.getElementById('input');
+  const sendBtn = document.getElementById('sendBtn');
+  const chat = document.getElementById('chat');
+
+  // 登录态：已登录则保存 user_id；未登录为匿名对话（不保存历史）
+  const userId = localStorage.getItem('user_id');
+  let conversationId = null; // 当前会话 ID，null 表示新对话
+
+  // ===== 消息渲染 =====
+  function addMsg(role, text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<div class="ai-avatar">校</div>';
+    html += '<div class="bubble">' + text + '</div>';
+    msg.innerHTML = html;
+    chat.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  // 「思考中」三点动画指示
+  function showTyping() {
+    const msg = document.createElement('div');
+    msg.className = 'msg ai';
+    msg.id = 'typingIndicator';
+    msg.innerHTML =
+      '<div class="ai-avatar">校</div>' +
+      '<div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
+    chat.appendChild(msg);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  // 打字机效果：逐字输出 AI 回复
+  function typeReply(text) {
+    const msg = addMsg('ai', '');
+    const bubble = msg.querySelector('.bubble');
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    bubble.appendChild(cursor);
+    let i = 0;
+    const timer = setInterval(() => {
+      cursor.remove();
+      bubble.appendChild(document.createTextNode(text[i]));
+      bubble.appendChild(cursor);
+      i++;
+      scrollToBottom();
+      if (i >= text.length) { clearInterval(timer); cursor.remove(); }
+    }, 28);
+  }
+
+  function scrollToBottom() {
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  // ===== 发送（流式读取） =====
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
+    addMsg('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // 构造请求体：已登录带 user_id 与 conversation_id，匿名仅带 content
+    const body = { content: text };
+    if (userId) {
+      body.user_id = Number(userId);
+      if (conversationId) body.conversation_id = conversationId;
+    }
+
+    showTyping(); // 显示「思考中」三点动画
+    try {
+      const resp = await fetch(BASE_URL + '/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      // 非流式错误响应（如越权 1006），解析 JSON 显示
+      const ct = resp.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        removeTyping();
+        const result = await resp.json();
+        addMsg('ai', result.message || '请求失败，请稍后重试');
+        return;
+      }
+
+      removeTyping(); // 开始流式输出，移除思考动画
+      const msg = addMsg('ai', '');
+      const bubble = msg.querySelector('.bubble');
+      let aiText = '';
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let streamDone = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const raw = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const line = raw.split('\n').find(l => l.startsWith('data: '));
+          if (!line) continue;
+          let p;
+          try { p = JSON.parse(line.slice(6)); } catch (e) { continue; }
+          if (p.type === 'delta') {
+            aiText += p.content;
+            bubble.textContent = aiText;
+            scrollToBottom();
+          } else if (p.type === 'done') {
+            if (p.conversation_id) conversationId = p.conversation_id;
+            streamDone = true; // 收到完整回复，后端会继续异步总结标题，无需等待
+          } else if (p.type === 'error') {
+            bubble.textContent = p.content;
+            scrollToBottom();
+          }
+        }
+        if (streamDone) {
+          reader.cancel().catch(() => {});
+          break;
+        }
+      }
+    } catch (err) {
+      removeTyping();
+      addMsg('ai', '请求失败，请确认后端服务已启动');
+    } finally {
+      sendBtn.disabled = input.value.trim() === '';
+    }
+  }
+
+  // ===== 新建对话 =====
+  function newChat() {
+    conversationId = null;
+    chat.innerHTML =
+      '<div class="msg ai">' +
+      '<div class="ai-avatar">校</div>' +
+      '<div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>' +
+      '</div>';
+    input.focus();
+  }
+
+  // 输入框自适应高度 + 回车发送
+  input.addEventListener('input', () => {
+    sendBtn.disabled = input.value.trim() === '';
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+
+  // ===== 返回主页 =====
+  function goHome() {
+    window.location.href = '主页面.html';
+  }
+
+  // ===== 加载历史会话（回溯对话） =====
+  async function loadConversation(cid) {
+    if (!userId) return;
+    try {
+      const resp = await fetch(BASE_URL + '/history/' + cid + '?user_id=' + userId);
+      const result = await resp.json();
+      if (result.code === 0) {
+        conversationId = Number(cid);
+        const msgs = result.data || [];
+        chat.innerHTML = '';
+        msgs.forEach(m => addMsg(m.role, m.content));
+        scrollToBottom();
+      }
+    } catch (err) {
+      // 加载失败则当作新对话处理
+    }
+  }
+
+  // 支持从主页面携带问题跳转（q）或回溯历史会话（conversation_id）
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  const cid = params.get('conversation_id');
+  if (cid) {
+    loadConversation(cid);
+  } else if (q) {
+    input.value = q;
+    send();
+  }
+</script>
+</body>
+</html>

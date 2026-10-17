@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>历史记录 - 校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --border: #e5e6eb;
+    --input-bg: #f4f6f8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-link {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .page-title { font-size: 18px; font-weight: 600; }
+
+  /* ===== 主体 ===== */
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+
+  /* 历史记录保留说明 */
+  .history-note {
+    font-size: 12px; color: #a8abb2;
+    text-align: center; margin-bottom: 16px;
+  }
+
+  /* 记录列表 */
+  .list { display: flex; flex-direction: column; gap: 12px; }
+  .record {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    overflow: hidden;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .record:hover { border-color: #c9cce0; }
+  .record.open { border-color: var(--primary); box-shadow: 0 4px 16px rgba(77,107,254,.08); }
+
+  .record-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .record-summary { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .record-time { flex-shrink: 0; font-size: 12px; color: #a8abb2; }
+  .record-arrow {
+    flex-shrink: 0; width: 18px; height: 18px;
+    color: #a8abb2; transition: transform .25s;
+  }
+  .record.open .record-arrow { transform: rotate(180deg); }
+
+  .record-detail {
+    max-height: 0; overflow: hidden;
+    transition: max-height .3s ease;
+  }
+  .record-detail-inner {
+    padding: 14px 16px 16px;
+    margin: 0 16px;
+    border-top: 1px dashed var(--border);
+    max-height: 520px;
+    overflow-y: auto;
+  }
+  .detail-msg { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
+  .detail-msg .role {
+    flex-shrink: 0; font-size: 12px; font-weight: 600;
+    padding: 1px 7px; border-radius: 6px; margin-top: 2px;
+  }
+  .detail-msg.user .role { background: rgba(77,107,254,.1); color: var(--primary); }
+  .detail-msg.ai .role { background: rgba(139,92,246,.1); color: #8b5cf6; }
+  .detail-msg .content { flex: 1; font-size: 14px; line-height: 1.7; color: var(--text-secondary); white-space: pre-wrap; word-break: break-word; }
+
+  .replay-btn {
+    margin-top: 14px; padding: 9px 0; width: 100%;
+    border: 1px solid var(--primary); border-radius: 10px;
+    background: #fff; color: var(--primary); font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .replay-btn:hover { background: var(--primary); color: #fff; }
+
+  /* 空记录 */
+  .empty {
+    display: none;
+    flex-direction: column; align-items: center; gap: 12px;
+    padding: 60px 0; color: #a8abb2;
+  }
+  .empty.show { display: flex; }
+  .empty .empty-icon { font-size: 44px; opacity: .6; }
+  .empty p { font-size: 14px; }
+
+  /* 分页 */
+  .pagination {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-top: 24px;
+  }
+  .page-btn {
+    padding: 8px 18px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+  .page-btn:disabled { color: #c1c4cc; background: #f7f8fa; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <span class="page-title">历史记录</span>
+</header>
+
+<main>
+  <!-- 历史记录保留说明 -->
+  <p class="history-note">仅保留用户提问超过 3 次、字数超过 100 字的会话记录</p>
+
+  <!-- 记录列表 -->
+  <div class="list" id="list"></div>
+
+  <!-- 空记录提示 -->
+  <div class="empty" id="empty">
+    <span class="empty-icon">🗂️</span>
+    <p>暂无历史记录</p>
+  </div>
+
+  <!-- 分页 -->
+  <div class="pagination">
+    <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+    <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+    <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+  </div>
+</main>
+
+<script>
+  const BASE_URL = '/api';
+  const userId = localStorage.getItem('user_id');
+
+  // 未登录跳转登录页
+  if (!userId) {
+    window.location.href = '登录注册.html';
+  }
+
+  const listEl = document.getElementById('list');
+  const emptyEl = document.getElementById('empty');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageInfo = document.getElementById('pageInfo');
+
+  const pageSize = 5;
+  let allRecords = [];      // 会话列表
+  const detailsCache = {};  // { conversation_id: [messages] }
+  let currentPage = 1;
+  let expanded = new Set();
+
+  // ===== 工具 =====
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  // ===== 加载历史会话列表 =====
+  async function loadHistory() {
+    try {
+      const resp = await fetch(BASE_URL + '/history?user_id=' + userId);
+      const result = await resp.json();
+      if (result.code === 0) {
+        allRecords = result.data || [];
+        currentPage = 1;
+      } else {
+        allRecords = [];
+      }
+    } catch (err) {
+      allRecords = [];
+    }
+    render();
+  }
+
+  // ===== 加载某会话消息详情 =====
+  async function loadDetail(id) {
+    try {
+      const resp = await fetch(BASE_URL + '/history/' + id + '?user_id=' + userId);
+      const result = await resp.json();
+      detailsCache[id] = (result.code === 0 && result.data) ? result.data : [];
+    } catch (err) {
+      detailsCache[id] = [];
+    }
+  }
+
+  // ===== 渲染 =====
+  function renderMsg(m) {
+    const role = m.role === 'user' ? '问' : '答';
+    return '<div class="detail-msg ' + m.role + '">' +
+      '<span class="role">' + role + '</span>' +
+      '<span class="content">' + escapeHtml(m.content) + '</span>' +
+      '</div>';
+  }
+
+  function render() {
+    const totalPages = Math.max(1, Math.ceil(allRecords.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    if (allRecords.length === 0) {
+      listEl.innerHTML = '';
+      emptyEl.classList.add('show');
+    } else {
+      emptyEl.classList.remove('show');
+      const start = (currentPage - 1) * pageSize;
+      const pageData = allRecords.slice(start, start + pageSize);
+      listEl.innerHTML = pageData.map(r => {
+        const open = expanded.has(r.conversation_id);
+        let detailHtml = '<div class="record-detail" style="max-height:0"><div class="record-detail-inner"></div></div>';
+        if (open) {
+          const msgs = detailsCache[r.conversation_id] || [];
+          detailHtml =
+            '<div class="record-detail" style="max-height:600px">' +
+            '<div class="record-detail-inner">' +
+            msgs.map(renderMsg).join('') +
+            '<button class="replay-btn" onclick="replay(' + r.conversation_id + ')">回溯对话</button>' +
+            '</div></div>';
+        }
+        return '<div class="record ' + (open ? 'open' : '') + '">' +
+          '<div class="record-head" onclick="toggle(' + r.conversation_id + ')">' +
+          '<span class="record-summary">' + escapeHtml(r.title || '（无标题）') + '</span>' +
+          '<span class="record-time">' + escapeHtml(r.created_at || '') + '</span>' +
+          '<svg class="record-arrow" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+          '<path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '</svg>' +
+          '</div>' + detailHtml + '</div>';
+      }).join('');
+    }
+
+    pageInfo.textContent = '第 ' + currentPage + ' / ' + totalPages + ' 页';
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  // ===== 展开 / 收起 =====
+  async function toggle(id) {
+    if (expanded.has(id)) {
+      expanded.delete(id);
+      render();
+    } else {
+      expanded.add(id);
+      if (!detailsCache[id]) await loadDetail(id);
+      render();
+    }
+  }
+
+  // ===== 分页 =====
+  function changePage(delta) {
+    currentPage += delta;
+    render();
+  }
+
+  // ===== 回溯对话：跳转到对话页继续该会话 =====
+  function replay(id) {
+    window.location.href = '对话页.html?conversation_id=' + id;
+  }
+
+  // ===== 返回主页 =====
+  function goHome() {
+    window.location.href = '主页面.html';
+  }
+
+  // 初始化：加载历史记录
+  loadHistory();
+</script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import re
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from database import get_db
@@ -293,3 +294,7 @@ async def voice(file: UploadFile = File(...)):
     except Exception as exc:  # noqa: BLE001
         return fail(5000, '语音识别失败：' + str(exc))
     return ok({'text': text})
+
+
+# 托管前端静态文件（放在所有 API 路由之后，/api/* 优先匹配）
+app.mount('/', StaticFiles(directory='static', html=True), name='frontend')
