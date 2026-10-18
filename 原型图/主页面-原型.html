@@ -43,7 +43,8 @@
     background: var(--primary);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-  }
+    object-fit: cover;
+}
   .logo svg { width: 20px; height: 20px; }
   .logo-title { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
 
@@ -197,15 +198,7 @@
 <!-- 顶部：logo + 标题 / 右上角用户名 + 头像 -->
 <header>
   <div class="logo-area">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
-              fill="#fff"/>
-        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
-      </svg>
-    </div>
+    <img class="logo" src="logo.jpg" alt="logo">
     <span class="logo-title">校园百事通助手</span>
   </div>
   <div class="user-area" onclick="goLogin()" title="登录 / 注册">

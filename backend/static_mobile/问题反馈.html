@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>问题反馈 - 校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --border: #e5e6eb;
+    --input-bg: #f4f6f8;
+    --success: #16a34a;
+    --success-bg: rgba(22, 163, 74, .1);
+    --danger: #e5484d;
+    --danger-bg: rgba(229, 72, 77, .1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-link {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 10px;
+    transition: background .15s, color .15s;
+  }
+  .back-link:hover { background: var(--input-bg); color: var(--text); }
+  .back-link svg { width: 18px; height: 18px; }
+  .page-title { font-size: 18px; font-weight: 600; }
+
+  /* ===== 主体 ===== */
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 24px 20px 40px;
+  }
+
+  /* 统计栏 */
+  .stats {
+    font-size: 13px; color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--input-bg);
+    border-radius: 12px;
+    display: none;
+  }
+  .stats.show { display: block; }
+  .stats b { color: var(--text); }
+  .stats .count-unsolved { color: var(--danger); font-weight: 600; }
+
+  /* 反馈列表 */
+  .list { display: flex; flex-direction: column; gap: 14px; }
+  .feedback-card {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    padding: 16px;
+  }
+  .card-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .badge {
+    flex-shrink: 0;
+    font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .badge.solved { background: var(--success-bg); color: var(--success); }
+  .badge.unsolved { background: var(--danger-bg); color: var(--danger); }
+  .card-head .uname { font-size: 14px; font-weight: 500; color: var(--text); }
+  .card-head .time {
+    margin-left: auto; flex-shrink: 0;
+    font-size: 12px; color: #a8abb2;
+  }
+
+  /* 反馈字段 */
+  .row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
+  .row:last-child { margin-bottom: 0; }
+  .row .label {
+    flex-shrink: 0; width: 64px;
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    padding-top: 1px;
+  }
+  .row .value {
+    flex: 1; font-size: 14px; line-height: 1.7; color: var(--text);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .row .value.suggestion {
+    color: var(--primary);
+    background: rgba(77, 107, 254, .06);
+    padding: 8px 12px; border-radius: 10px;
+  }
+  .category-tag {
+    display: inline-block;
+    font-size: 12px; color: var(--primary);
+    background: rgba(77, 107, 254, .1);
+    padding: 2px 10px; border-radius: 8px;
+  }
+  .resolve-btn {
+    margin-top: 4px;
+    padding: 7px 14px;
+    border: 1px solid var(--success);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--success);
+    font-size: 13px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .resolve-btn:hover { background: var(--success); color: #fff; }
+  .delete-btn {
+    margin-top: 4px;
+    padding: 7px 14px;
+    border: 1px solid var(--danger);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--danger);
+    font-size: 13px; cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .delete-btn:hover { background: var(--danger); color: #fff; }
+
+  /* 空状态 */
+  .empty {
+    display: none;
+    flex-direction: column; align-items: center; gap: 12px;
+    padding: 60px 0; color: #a8abb2;
+  }
+  .empty.show { display: flex; }
+  .empty .empty-icon { font-size: 44px; opacity: .6; }
+  .empty p { font-size: 14px; }
+
+  /* 分页 */
+  .pagination {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-top: 24px;
+  }
+  .page-btn {
+    padding: 8px 18px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--bg); color: var(--text);
+    font-size: 14px; cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+  .page-btn:disabled { color: #c1c4cc; background: #f7f8fa; cursor: not-allowed; }
+  .page-info { font-size: 13px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <a class="back-link" onclick="goHome()">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    返回主页
+  </a>
+  <span class="page-title">问题反馈管理</span>
+</header>
+
+<main>
+  <!-- 统计栏 -->
+  <div class="stats" id="stats"></div>
+
+  <!-- 反馈列表 -->
+  <div class="list" id="feedbackList"></div>
+
+  <!-- 空状态 -->
+  <div class="empty" id="empty">
+    <span class="empty-icon">📋</span>
+    <p>暂无问题反馈</p>
+  </div>
+
+  <!-- 分页 -->
+  <div class="pagination" id="pagination" style="display:none">
+    <button class="page-btn" id="prevBtn" onclick="changePage(-1)">上一页</button>
+    <span class="page-info" id="pageInfo">第 1 / 1 页</span>
+    <button class="page-btn" id="nextBtn" onclick="changePage(1)">下一页</button>
+  </div>
+</main>
+
+<script>
+  const BASE_URL = 'http://124.221.22.10:8000/api';
+  const userId = localStorage.getItem('user_id');
+  const role = localStorage.getItem('role');
+
+  // 权限门槛：仅管理员可访问，否则返回主页
+  if (role !== 'admin') {
+    window.location.href = '主页面.html';
+  }
+
+  const listEl = document.getElementById('feedbackList');
+  const emptyEl = document.getElementById('empty');
+  const statsEl = document.getElementById('stats');
+  const paginationEl = document.getElementById('pagination');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const pageInfo = document.getElementById('pageInfo');
+
+  const pageSize = 5;
+  let allFeedback = [];
+  let currentPage = 1;
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+
+  function goHome() {
+    window.location.href = '主页面.html';
+  }
+
+  // ===== 加载反馈列表 =====
+  async function loadFeedback() {
+    try {
+      const resp = await fetch(BASE_URL + '/feedback?user_id=' + userId);
+      const result = await resp.json();
+      if (result.code === 0) {
+        // 按时间倒序：最新在最上面
+        allFeedback = (result.data || []).slice().sort((a, b) =>
+          String(b.created_at || '').localeCompare(String(a.created_at || ''))
+        );
+        currentPage = 1;
+      } else {
+        allFeedback = [];
+      }
+    } catch (err) {
+      allFeedback = [];
+    }
+    render();
+  }
+
+  // ===== 渲染 =====
+  function render() {
+    const totalPages = Math.max(1, Math.ceil(allFeedback.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    if (allFeedback.length === 0) {
+      listEl.innerHTML = '';
+      statsEl.classList.remove('show');
+      paginationEl.style.display = 'none';
+      emptyEl.classList.add('show');
+      return;
+    }
+
+    emptyEl.classList.remove('show');
+    const unsolved = allFeedback.filter(f => !f.solved).length;
+    statsEl.classList.add('show');
+    statsEl.innerHTML =
+      '共 <b>' + allFeedback.length + '</b> 条反馈 · ' +
+      '<span class="count-unsolved">未解决 ' + unsolved + '</span> 条';
+
+    const start = (currentPage - 1) * pageSize;
+    const pageData = allFeedback.slice(start, start + pageSize);
+    listEl.innerHTML = pageData.map(f => renderCard(f)).join('');
+
+    paginationEl.style.display = 'flex';
+    pageInfo.textContent = '第 ' + currentPage + ' / ' + totalPages + ' 页';
+    prevBtn.disabled = currentPage <= 1;
+    nextBtn.disabled = currentPage >= totalPages;
+  }
+
+  function renderCard(f) {
+    const badge = f.solved
+      ? '<span class="badge solved">已解决</span>'
+      : '<span class="badge unsolved">未解决</span>';
+
+    let body = '';
+    if (!f.solved) {
+      body +=
+        '<div class="row"><span class="label">问题分类</span>' +
+        '<span class="value"><span class="category-tag">' + escapeHtml(f.category || '未分类') + '</span></span></div>';
+      body +=
+        '<div class="row"><span class="label">问题描述</span>' +
+        '<span class="value">' + escapeHtml(f.problem || '') + '</span></div>';
+      body += '<button class="resolve-btn" onclick="resolveFeedback(' + f.feedback_id + ')">✓ 标记已解决</button>';
+    }
+    if (f.suggestion) {
+      body +=
+        '<div class="row"><span class="label">用户建议</span>' +
+        '<span class="value suggestion">' + escapeHtml(f.suggestion) + '</span></div>';
+    }
+    if (f.solved) {
+      body += '<button class="delete-btn" onclick="deleteFeedback(' + f.feedback_id + ')">🗑 删除反馈</button>';
+    }
+
+    return '<div class="feedback-card">' +
+      '<div class="card-head">' + badge +
+        '<span class="uname">' + escapeHtml(f.username || '匿名用户') + '</span>' +
+        '<span class="time">' + escapeHtml(f.created_at || '') + '</span>' +
+      '</div>' + body +
+    '</div>';
+  }
+
+  // ===== 分页 =====
+  function changePage(delta) {
+    currentPage += delta;
+    render();
+  }
+
+  // ===== 标记已解决 =====
+  async function resolveFeedback(id) {
+    try {
+      const resp = await fetch(BASE_URL + '/feedback/' + id + '/resolve?user_id=' + userId, {
+        method: 'POST'
+      });
+      const result = await resp.json();
+      if (result.code === 0) {
+        loadFeedback();
+      } else {
+        alert(result.message || '操作失败');
+      }
+    } catch (err) {
+      alert('请求失败，请检查网络');
+    }
+  }
+
+  async function deleteFeedback(id) {
+    if (!confirm('确定要删除这条已解决的反馈吗？')) return;
+    try {
+      const resp = await fetch(BASE_URL + '/feedback/' + id + '?user_id=' + userId, {
+        method: 'DELETE'
+      });
+      const result = await resp.json();
+      if (result.code === 0) {
+        loadFeedback();
+      } else {
+        alert(result.message || '操作失败');
+      }
+    } catch (err) {
+      alert('请求失败，请检查网络');
+    }
+  }
+
+  // 初始化：加载反馈
+  loadFeedback();
+</script>
+</body>
+</html>

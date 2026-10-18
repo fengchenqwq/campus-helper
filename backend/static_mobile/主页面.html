@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>校园百事通助手</title>
+<style>
+  :root {
+    --primary: #4D6BFE;
+    --primary-hover: #3d5be0;
+    --text: #1f2329;
+    --text-secondary: #646a73;
+    --bg: #ffffff;
+    --input-bg: #f4f6f8;
+    --border: #e5e6eb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* ===== 顶部 ===== */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .hamburger {
+    width: 36px; height: 36px;
+    border: none; background: transparent;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 5px;
+    border-radius: 8px;
+  }
+  .hamburger span {
+    width: 20px; height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+  }
+  .logo-area { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600; flex-shrink: 0;
+    object-fit: cover;
+}
+  .logo-title { font-size: 16px; font-weight: 600; }
+  .user-area {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; padding: 4px 6px; border-radius: 18px;
+  }
+  .user-area .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, #4D6BFE, #8b5cf6);
+    color: #fff; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .user-area .avatar.login-avatar {
+    width: auto; padding: 0 13px; border-radius: 16px;
+    background: var(--primary); font-size: 13px;
+  }
+
+  /* ===== 聊天区 ===== */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  main.empty { justify-content: center; }
+  .welcome-wrap { text-align: center; }
+  main:not(.empty) .welcome-wrap { display: none; }
+  .welcome { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+  .subtitle { font-size: 14px; color: var(--text-secondary); }
+
+  .msg-list { display: flex; flex-direction: column; gap: 14px; }
+  .msg { display: flex; align-items: flex-start; gap: 8px; }
+  .msg.user { justify-content: flex-end; }
+  .msg .ai-avatar {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 14px;
+    object-fit: cover;
+}
+  .bubble {
+    max-width: 78%;
+    padding: 10px 14px;
+    font-size: 15px; line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.ai .bubble {
+    background: var(--input-bg); color: var(--text);
+    border-radius: 4px 16px 16px 16px;
+  }
+  .msg.user .bubble {
+    background: var(--primary); color: #fff;
+    border-radius: 16px 4px 16px 16px;
+  }
+  .cursor { display: inline-block; width: 2px; height: 1em; background: var(--primary); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 思考中三点动画 */
+  .typing-dots { display: inline-flex; gap: 4px; padding: 4px 2px; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #a8abb2;
+    animation: typing-bounce 1.4s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* ===== 底部输入栏（豆包式） ===== */
+  .input-bar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .bar-btn {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; background: transparent;
+    font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+  }
+  .bar-btn:active { background: #e8eaed; }
+  .bar-btn svg { width: 22px; height: 22px; }
+  .send-btn {
+    width: 40px; height: 40px; flex-shrink: 0;
+    border: none; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .send-btn:active { background: var(--primary-hover); }
+  .input-bar textarea {
+    flex: 1;
+    border: none; outline: none; resize: none;
+    background: var(--input-bg);
+    border-radius: 20px;
+    padding: 10px 14px;
+    font-size: 15px; line-height: 1.5;
+    font-family: inherit; color: var(--text);
+    max-height: 120px;
+  }
+  .input-bar textarea::placeholder { color: #a8abb2; }
+
+  /* ===== 抽屉（左侧滑出） ===== */
+  .drawer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    opacity: 0; visibility: hidden;
+    transition: opacity .25s;
+    z-index: 50;
+  }
+  .drawer-overlay.show { opacity: 1; visibility: visible; }
+  .drawer {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 80%; max-width: 300px;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 51;
+  }
+  .drawer.show { transform: translateX(0); }
+  .drawer-header {
+    padding: 20px 16px 12px;
+    font-size: 17px; font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  .new-chat-btn {
+    margin: 12px 16px;
+    padding: 11px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px; cursor: pointer;
+    text-align: left;
+  }
+  .new-chat-btn:active { background: var(--input-bg); }
+  .drawer-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px;
+  }
+  .drawer-list-title {
+    font-size: 12px; color: #a8abb2;
+    padding: 8px 8px 4px;
+  }
+  .drawer-item {
+    padding: 11px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .drawer-item:active { background: var(--input-bg); }
+  .drawer-item.current {
+    background: var(--input-bg);
+    font-weight: 600;
+  }
+  .more-history-btn {
+    margin: 8px 16px;
+    padding: 10px;
+    border: none; border-radius: 10px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px; cursor: pointer;
+    text-align: center;
+  }
+  .more-history-btn:active { background: var(--input-bg); }
+  .drawer-user {
+    flex-shrink: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .drawer-user .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #4D6BFE, #8b5cf6);
+    color: #fff; font-size: 15px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drawer-user .uname { font-size: 15px; font-weight: 500; }
+
+  /* ===== 弹窗 ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    width: 85%; max-width: 320px;
+    background: #fff; border-radius: 16px;
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 10px; }
+  .modal-text { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button {
+    flex: 1; padding: 11px;
+    border-radius: 12px; font-size: 14px; cursor: pointer;
+    border: none;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-secondary { background: var(--input-bg); color: var(--text-secondary); }
+
+  /* ===== 反馈按钮 ===== */
+  .msg-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 78%; }
+  .msg-body .bubble { max-width: 100%; }
+  .msg-img {
+    max-width: 70%;
+    max-height: 220px;
+    border-radius: 12px;
+    display: block;
+  }
+  .feedback-btn {
+    font-size: 12px; color: #a8abb2;
+    border: none; background: transparent;
+    cursor: pointer; padding: 2px 8px; border-radius: 6px;
+  }
+  .feedback-btn:active { color: var(--primary); background: rgba(77,107,254,.06); }
+  .msg-file {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border-radius: 12px;
+    font-size: 14px; color: var(--text);
+    max-width: 260px;
+    word-break: break-all;
+    cursor: pointer;
+  }
+
+  /* 待发送附件区 */
+  .attach-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px 0;
+    flex-wrap: wrap;
+  }
+  .attach-item { position: relative; }
+  .attach-item img {
+    width: 56px; height: 56px;
+    object-fit: cover; border-radius: 8px;
+    cursor: pointer; display: block;
+  }
+  .attach-item.attach-file {
+    padding: 8px 12px; background: var(--input-bg);
+    border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+    max-width: 200px; word-break: break-all;
+  }
+  .attach-del {
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,.55); color: #fff;
+    border-radius: 50%; font-size: 12px;
+    line-height: 18px; text-align: center; cursor: pointer;
+  }
+  #feedbackModal .modal { text-align: left; }
+  #feedbackModal .modal-text { margin-bottom: 12px; }
+  #feedbackModal textarea, #feedbackModal select {
+    width: 100%; margin-bottom: 12px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-family: inherit; background: var(--input-bg);
+    color: var(--text); outline: none; resize: none; box-sizing: border-box;
+  }
+  #feedbackModal select { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <button class="hamburger" onclick="toggleDrawer()" aria-label="菜单">
+    <span></span><span></span>
+  </button>
+  <div class="logo-area">
+    <img class="logo" src="logo.jpg" alt="logo">
+    <span class="logo-title">校园百事通助手</span>
+  </div>
+  <div class="user-area" id="userArea" onclick="onUserClick()"></div>
+</header>
+
+<!-- 抽屉 -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-header">校园百事通</div>
+  <button class="new-chat-btn" onclick="newChat()">＋ 创建新对话</button>
+  <button class="new-chat-btn" id="feedbackBtn" onclick="goFeedback()" style="display:none">📋 查看问题反馈</button>
+  <div class="drawer-list" id="drawerList"></div>
+  <button class="more-history-btn" id="moreHistoryBtn" style="display:none" onclick="goHistory()">展示更多历史记录</button>
+  <div class="drawer-user" id="drawerUser" onclick="onUserClick()"></div>
+</aside>
+
+<!-- 聊天区 -->
+<main id="chatArea" class="empty">
+  <div class="welcome-wrap">
+    <h1 class="welcome">你好，我是校园百事通助手</h1>
+    <p class="subtitle">校园问题，随问随答</p>
+  </div>
+  <div class="msg-list" id="msgList"></div>
+</main>
+
+<!-- 待发送附件区 -->
+<div class="attach-bar" id="attachBar" style="display:none"></div>
+
+<!-- 底部输入栏 -->
+<div class="input-bar">
+  <button class="bar-btn" onclick="takePhoto()" aria-label="拍照">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="7" width="18" height="13" rx="3"/>
+      <circle cx="12" cy="13.5" r="3.5"/>
+      <path d="M8.5 7l1.5-2.5h4L15.5 7"/>
+    </svg>
+  </button>
+  <textarea id="question" rows="1" placeholder="输入你的问题"></textarea>
+  <button class="bar-btn" id="addBtn" onclick="addFile()" aria-label="文件">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.5 11.5l-9 9a5.5 5.5 0 0 1-7.8-7.8l9.5-9.5a3.5 3.5 0 0 1 5 5L10 18"/>
+    </svg>
+  </button>
+  <button class="send-btn" id="sendBtn" onclick="send()" aria-label="发送" style="display:none">↑</button>
+</div>
+
+<!-- 隐藏的文件输入 -->
+<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="fileInput" accept="image/*,.doc,.docx,.pdf,.ppt,.pptx,.xls,.xlsx" style="display:none">
+
+<!-- 未登录提示弹窗 -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <div class="modal-icon">🔒</div>
+    <p class="modal-text" id="loginModalText">您还未进行登录，请先去登录/注册！</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="goLogin()">登录/注册</button>
+      <button class="btn-secondary" onclick="closeModal()">下次一定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 退出登录确认弹窗 -->
+<div class="modal-overlay" id="logoutModal">
+  <div class="modal">
+    <div class="modal-icon">👋</div>
+    <p class="modal-text">确定要退出登录吗？</p>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="doLogout()">退出登录</button>
+      <button class="btn-secondary" onclick="closeLogoutModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE_URL = 'http://124.221.22.10:8000/api';
+  const input = document.getElementById('question');
+  const chatArea = document.getElementById('chatArea');
+  const msgList = document.getElementById('msgList');
+  const userId = localStorage.getItem('user_id');
+  const username = localStorage.getItem('username');
+  let conversationId = null; // 当前会话 ID，null 表示新对话
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ===== 用户区渲染 =====
+  function renderUserArea() {
+    const role = localStorage.getItem('role');
+    const ua = document.getElementById('userArea');
+    const du = document.getElementById('drawerUser');
+    // 仅管理员显示「查看问题反馈」入口
+    document.getElementById('feedbackBtn').style.display = (role === 'admin') ? 'block' : 'none';
+    if (username) {
+      const av = '<div class="avatar">' + escapeHtml(username.slice(-1)) + '</div>';
+      ua.innerHTML = av;
+      du.innerHTML = av + '<span class="uname">' + escapeHtml(username) + '</span>';
+    } else {
+      ua.innerHTML = '<div class="avatar login-avatar">登录</div>';
+      du.innerHTML = '<div class="avatar login-avatar">登录</div><span class="uname">未登录</span>';
+    }
+  }
+
+  function onUserClick() {
+    if (username) {
+      document.getElementById('logoutModal').classList.add('show');
+    } else {
+      goLogin();
+    }
+  }
+
+  // ===== 抽屉 =====
+  function toggleDrawer() {
+    document.getElementById('drawer').classList.toggle('show');
+    document.getElementById('drawerOverlay').classList.toggle('show');
+    if (document.getElementById('drawer').classList.contains('show')) {
+      loadDrawer();
+    }
+  }
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('show');
+    document.getElementById('drawerOverlay').classList.remove('show');
+  }
+
+  async function loadDrawer() {
+    if (!userId) return;
+    const listEl = document.getElementById('drawerList');
+    listEl.innerHTML = '<div class="drawer-list-title">加载中...</div>';
+    try {
+      const resp = await fetch(BASE_URL + '/conversations?user_id=' + userId);
+      const result = await resp.json();
+      if (result.code !== 0 || !result.data) { listEl.innerHTML = ''; return; }
+      const all = result.data;
+      const active = all.filter(c => c.status === 'active');
+      const archived = all.filter(c => c.status === 'archived');
+
+      let html = '';
+      if (active.length > 0) {
+        html += '<div class="drawer-list-title">当前对话</div>';
+        html += active.map(c =>
+          '<div class="drawer-item current" onclick="openConversation(' + c.conversation_id + ')">' +
+          escapeHtml(c.title || '新对话') + '</div>'
+        ).join('');
+      }
+      if (archived.length > 0) {
+        html += '<div class="drawer-list-title">最近历史记录</div>';
+        html += archived.map(c =>
+          '<div class="drawer-item" onclick="openConversation(' + c.conversation_id + ')">' +
+          escapeHtml(c.title || '（无标题）') + '</div>'
+        ).join('');
+      }
+      if (!html) html = '<div class="drawer-list-title">暂无对话</div>';
+      listEl.innerHTML = html;
+
+      document.getElementById('moreHistoryBtn').style.display =
+        archived.length > 30 ? 'block' : 'none';
+    } catch (err) {
+      listEl.innerHTML = '';
+    }
+  }
+
+  function openConversation(id) {
+    closeDrawer();
+    loadConversation(id);
+  }
+  function goHistory() {
+    closeDrawer();
+    if (!username) {
+      showLoginModal('您还未进行登录，暂时无法查看历史记录，请先去登录/注册！');
+      return;
+    }
+    window.location.href = '历史记录.html';
+  }
+
+  // 管理员查看问题反馈
+  function goFeedback() {
+    closeDrawer();
+    window.location.href = '问题反馈.html';
+  }
+
+  // ===== 聊天区 =====
+  function enterChat() {
+    chatArea.classList.remove('empty');
+  }
+  function exitChat() {
+    chatArea.classList.add('empty');
+    msgList.innerHTML = '';
+    input.value = '';
+  }
+  function addMsg(role, text) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') {
+      html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+      html += '<div class="msg-body"><div class="bubble">' + text + '</div>' +
+              '<button class="feedback-btn" onclick="openFeedback()">💬 反馈</button></div>';
+    } else {
+      html += '<div class="bubble">' + text + '</div>';
+    }
+    msg.innerHTML = html;
+    msgList.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+  function showTyping() {
+    const msg = document.createElement('div');
+    msg.className = 'msg ai';
+    msg.id = 'typingIndicator';
+    msg.innerHTML =
+      '<img class="ai-avatar" src="logo.jpg" alt="AI">' +
+      '<div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
+    msgList.appendChild(msg);
+    scrollToBottom();
+  }
+  function removeTyping() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+  function scrollToBottom() {
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  // ===== 发送（流式对话，直接在主页面显示） =====
+  async function send(text) {
+    text = (text == null ? input.value : text).trim();
+    const atts = pendingAttachments.slice();
+    if (!text && atts.length === 0) return;
+    if (!username) {
+      showLoginModal('请先登录后再提问');
+      return;
+    }
+
+    enterChat();
+    // 1. 显示附件 + 文字
+    for (const att of atts) {
+      if (att.type === 'image') addImgMsg('user', att.url);
+      else addFileMsg('user', att.file.name, att.url);
+    }
+    if (text) addMsg('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+    pendingAttachments = [];
+    renderAttachments();
+    updateSendBtn();
+
+    // 2. 立即显示「思考中」动画，让用户知道内容已被接收
+    showTyping();
+
+    // 3. 解析附件内容 + 用户文字，连接后一起发给 AI
+    let content = text;
+    const fileParts = [];
+    for (const att of atts) {
+      if (att.type === 'image') {
+        const compressed = await compressImage(att.file);
+        const recognized = await recognizeImageText(compressed);
+        fileParts.push('【图片】\n' + (recognized || '（图片中未识别到文字）'));
+      } else {
+        const parsed = await recognizeDocumentText(att.file);
+        fileParts.push('【文件「' + att.file.name + '」】\n' + (parsed || '（无法解析文件内容）'));
+      }
+    }
+    if (fileParts.length > 0) {
+      content = ('以下是用户上传的附件内容：\n' + fileParts.join('\n\n') +
+        (content ? '\n\n用户的要求：\n' + content : '')).trim();
+    }
+
+    const body = { content: content, user_id: Number(userId) };
+    if (conversationId) body.conversation_id = conversationId;
+
+    try {
+      const resp = await fetch(BASE_URL + '/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const ct = resp.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        removeTyping();
+        const result = await resp.json();
+        addMsg('ai', result.message || '请求失败，请稍后重试');
+        return;
+      }
+
+      removeTyping();
+      const msg = addMsg('ai', '');
+      const bubble = msg.querySelector('.bubble');
+      let aiText = '';
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let streamDone = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const raw = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const line = raw.split('\n').find(l => l.startsWith('data: '));
+          if (!line) continue;
+          let p;
+          try { p = JSON.parse(line.slice(6)); } catch (e) { continue; }
+          if (p.type === 'delta') {
+            aiText += p.content;
+            bubble.textContent = aiText;
+            scrollToBottom();
+          } else if (p.type === 'done') {
+            if (p.conversation_id) conversationId = p.conversation_id;
+            streamDone = true;
+          } else if (p.type === 'error') {
+            bubble.textContent = p.content;
+            scrollToBottom();
+          }
+        }
+        if (streamDone) {
+          reader.cancel().catch(() => {});
+          break;
+        }
+      }
+    } catch (err) {
+      removeTyping();
+      addMsg('ai', '请求失败，请确认网络连接');
+    }
+  }
+
+  // 输入框回车发送
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send();
+    }
+  });
+  input.addEventListener('input', () => {
+    updateSendBtn();
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+
+  function updateSendBtn() {
+    const hasContent = input.value.trim() !== '' || pendingAttachments.length > 0;
+    document.getElementById('sendBtn').style.display = hasContent ? 'flex' : 'none';
+    document.getElementById('addBtn').style.display = hasContent ? 'none' : 'flex';
+  }
+
+  // ===== 新建对话 =====
+  function newChat() {
+    closeDrawer();
+    conversationId = null;
+    exitChat();
+    input.focus();
+  }
+
+  // ===== 回溯历史会话（加载到主页面） =====
+  async function loadConversation(cid) {
+    if (!userId) {
+      document.getElementById('loginModal').classList.add('show');
+      return;
+    }
+    try {
+      const resp = await fetch(BASE_URL + '/history/' + cid + '?user_id=' + userId);
+      const result = await resp.json();
+      if (result.code === 0) {
+        conversationId = Number(cid);
+        enterChat();
+        msgList.innerHTML = '';
+        (result.data || []).forEach(m => addMsg(m.role, m.content));
+      }
+    } catch (err) {
+      // 加载失败则当作新对话处理
+    }
+  }
+
+  // ===== 拍照 / 文件 / 待发送附件 =====
+  let pendingAttachments = [];
+
+  function takePhoto() { document.getElementById('cameraInput').click(); }
+  function addFile() { document.getElementById('fileInput').click(); }
+
+  function addAttachment(file) {
+    pendingAttachments.push({
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      file: file,
+      url: URL.createObjectURL(file),
+    });
+    renderAttachments();
+    updateSendBtn();
+  }
+
+  function renderAttachments() {
+    const bar = document.getElementById('attachBar');
+    if (pendingAttachments.length === 0) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+    bar.style.display = 'flex';
+    bar.innerHTML = pendingAttachments.map((att, i) => {
+      if (att.type === 'image') {
+        return '<div class="attach-item"><img src="' + att.url + '" onclick="window.open(\'' + att.url + '\')">' +
+          '<span class="attach-del" onclick="removeAttachment(' + i + ')">×</span></div>';
+      } else {
+        return '<div class="attach-item attach-file" onclick="window.open(\'' + att.url + '\')">📄 ' + escapeHtml(att.file.name) +
+          '<span class="attach-del" onclick="event.stopPropagation(); removeAttachment(' + i + ')">×</span></div>';
+      }
+    }).join('');
+  }
+
+  function removeAttachment(i) {
+    pendingAttachments.splice(i, 1);
+    renderAttachments();
+    updateSendBtn();
+  }
+
+  function addImgMsg(role, imgUrl) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+    html += '<div class="msg-body"><img class="msg-img" src="' + imgUrl + '" alt="图片" onclick="window.open(\'' + imgUrl + '\')"></div>';
+    msg.innerHTML = html;
+    msgList.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  function addFileMsg(role, fileName, fileUrl) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+    html += '<div class="msg-body"><div class="msg-file" onclick="window.open(\'' + fileUrl + '\')">📄 ' + escapeHtml(fileName) + '</div></div>';
+    msg.innerHTML = html;
+    msgList.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  async function compressImage(file, maxSize = 1280, quality = 0.8) {
+    if (!file.type.startsWith('image/')) return file;
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        if (ratio >= 1) { resolve(file); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  async function recognizeImageText(file) {
+    const fd = new FormData();
+    fd.append('file', file, 'image.jpg');
+    try {
+      const resp = await fetch(BASE_URL + '/image', { method: 'POST', body: fd });
+      const result = await resp.json();
+      return (result.code === 0 && result.data && result.data.text) ? result.data.text : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  async function recognizeDocumentText(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const resp = await fetch(BASE_URL + '/document', { method: 'POST', body: fd });
+      const result = await resp.json();
+      return (result.code === 0 && result.data && result.data.text) ? result.data.text : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  document.getElementById('cameraInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) { addAttachment(e.target.files[0]); e.target.value = ''; }
+  });
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) { addAttachment(e.target.files[0]); e.target.value = ''; }
+  });
+
+  // ===== 登录 / 退出 =====
+  function goLogin() {
+    window.location.href = '登录注册.html';
+  }
+  function closeModal() {
+    document.getElementById('loginModal').classList.remove('show');
+  }
+  function showLoginModal(msg) {
+    document.getElementById('loginModalText').textContent = msg;
+    document.getElementById('loginModal').classList.add('show');
+  }
+
+  // ===== 问题反馈 =====
+  let fbConversationId = null;
+  let fbSolved = null;
+
+  function openFeedback() {
+    fbConversationId = conversationId;
+    fbSolved = null;
+    document.getElementById('fbStep1').style.display = 'block';
+    document.getElementById('fbStepYes').style.display = 'none';
+    document.getElementById('fbStepNo').style.display = 'none';
+    document.getElementById('feedbackModal').classList.add('show');
+  }
+
+  function fbChoose(solved) {
+    fbSolved = solved;
+    document.getElementById('fbStep1').style.display = 'none';
+    if (solved) {
+      document.getElementById('fbStepYes').style.display = 'block';
+      document.getElementById('fbStepNo').style.display = 'none';
+    } else {
+      document.getElementById('fbStepYes').style.display = 'none';
+      document.getElementById('fbStepNo').style.display = 'block';
+    }
+  }
+
+  function closeFeedback() {
+    document.getElementById('feedbackModal').classList.remove('show');
+  }
+
+  async function fbSubmit() {
+    if (fbSolved === null) return;
+    const payload = { user_id: Number(userId), conversation_id: fbConversationId, solved: fbSolved };
+    if (fbSolved) {
+      const suggestion = document.getElementById('fbSuggestion').value.trim();
+      if (!suggestion) { closeFeedback(); return; }  // 选「是」且无建议：不产生数据
+      payload.suggestion = suggestion;
+    } else {
+      payload.category = document.getElementById('fbCategory').value;
+      const problem = document.getElementById('fbProblem').value.trim();
+      if (!problem) { alert('请描述您遇到的问题'); return; }
+      payload.problem = problem;
+      const suggestion = document.getElementById('fbSuggestion2').value.trim();
+      if (suggestion) payload.suggestion = suggestion;
+    }
+    try {
+      const resp = await fetch(BASE_URL + '/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await resp.json();
+      if (result.code === 0) {
+        alert('反馈提交成功，感谢您的反馈！');
+        closeFeedback();
+        document.getElementById('fbSuggestion').value = '';
+        document.getElementById('fbProblem').value = '';
+        document.getElementById('fbSuggestion2').value = '';
+      } else {
+        alert(result.message || '提交失败');
+      }
+    } catch (err) {
+      alert('请求失败，请检查网络');
+    }
+  }
+  function doLogout() {
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('username');
+    localStorage.removeItem('role');
+    window.location.reload();
+  }
+  function closeLogoutModal() {
+    document.getElementById('logoutModal').classList.remove('show');
+  }
+
+  // 支持从其它页面携带问题跳转（q）或回溯会话（conversation_id）
+  const params = new URLSearchParams(location.search);
+  const q = params.get('q');
+  const cid = params.get('conversation_id');
+  if (cid) {
+    loadConversation(cid);
+  } else if (q) {
+    send(q);
+  }
+
+  // 初始化
+  renderUserArea();
+</script>
+
+<!-- 问题反馈弹窗 -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-icon">💬</div>
+    <div id="fbStep1">
+      <p class="modal-text">请问本次回答是否解决了您的问题？</p>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbChoose(true)">是，已解决</button>
+        <button class="btn-secondary" onclick="fbChoose(false)">否，未解决</button>
+      </div>
+    </div>
+    <div id="fbStepYes" style="display:none">
+      <p class="modal-text">对我们的建议</p>
+      <textarea id="fbSuggestion" rows="3" placeholder="请输入您的建议（可留空）"></textarea>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbSubmit()">提交</button>
+        <button class="btn-secondary" onclick="closeFeedback()">取消</button>
+      </div>
+    </div>
+    <div id="fbStepNo" style="display:none">
+      <p class="modal-text">您在本次回答中出现了什么问题？</p>
+      <select id="fbCategory">
+        <option value="生活">生活</option>
+        <option value="教务">教务</option>
+        <option value="社团">社团</option>
+        <option value="FAQ">FAQ</option>
+        <option value="其他">其他</option>
+      </select>
+      <textarea id="fbProblem" rows="3" placeholder="请描述您遇到的问题"></textarea>
+      <p class="modal-text">对我们的建议（可留空）</p>
+      <textarea id="fbSuggestion2" rows="2" placeholder="请输入您的建议（可留空）"></textarea>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbSubmit()">提交</button>
+        <button class="btn-secondary" onclick="closeFeedback()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

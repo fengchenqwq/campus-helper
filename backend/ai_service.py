@@ -7,17 +7,71 @@ from cozepy import Coze, ChatEventType, Message, MessageObjectString, MessageObj
 from config import COZE_API_BASE, COZE_API_TOKEN, COZE_BOT_ID
 from database import get_db
 
-# 精准提示词：引导智能体以校园助手身份回答（精简版，缩短 Coze 处理时间）
+# 精准提示词：引导智能体以校园助手身份回答（专业问题走知识库，闲聊自然回应）
 SYSTEM_PROMPT = (
-    '你是「校园百事通」校园助手，解答学生和教职工的校园问题。'
-    '优先依据提供的知识库内容回答；知识库没有的，说明以学校官方通知为准，不要编造。用中文简洁回答。'
+    '你是「校园百事通」校园助手。'
+    '当用户咨询校园相关问题时，优先依据提供的知识库内容回答；知识库没有的，说明以学校官方通知为准，不要编造。'
+    '当用户进行日常闲聊或问校园以外的问题时，自然友好地回应。'
+    '用中文简洁回答。'
 )
 
 _coze = Coze(auth=TokenAuth(token=COZE_API_TOKEN), base_url=COZE_API_BASE)
 
-# 回答缓存：问题 -> 完整回复（内存 LRU，避免重复问题反复调 Coze）
+# 回答缓存：问题 -> 完整回复（内存 LRU + SQLite 持久化，避免重复问题反复调 Coze）
 _cache = OrderedDict()
 _CACHE_MAX = 500
+
+# 缓存持久化：服务重启后从 SQLite 加载回内存，缓存不清空
+_CACHE_TABLE_SQL = '''
+CREATE TABLE IF NOT EXISTS answer_cache (
+    question   TEXT PRIMARY KEY,
+    answer     TEXT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+'''
+
+
+def _load_cache():
+    """启动时建表并把持久化缓存加载进内存（失败不影响启动）。"""
+    try:
+        conn = get_db()
+        conn.execute(_CACHE_TABLE_SQL)
+        conn.commit()
+        rows = conn.execute('SELECT question, answer FROM answer_cache ORDER BY updated_at, rowid').fetchall()
+        conn.close()
+        for r in rows:
+            _cache[r['question']] = r['answer']
+    except Exception:
+        pass
+
+
+def _persist(key, answer):
+    """缓存写入 SQLite 持久化（失败不影响主流程）。"""
+    try:
+        conn = get_db()
+        conn.execute(
+            'INSERT OR REPLACE INTO answer_cache (question, answer, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+            (key, answer),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def _remove(key):
+    """缓存淘汰时同步删除 SQLite 记录（失败不影响主流程）。"""
+    try:
+        conn = get_db()
+        conn.execute('DELETE FROM answer_cache WHERE question=?', (key,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+# 启动时加载持久化缓存
+_load_cache()
 
 
 def _search_knowledge(question: str, limit: int = 3) -> str:
@@ -35,16 +89,27 @@ def _search_knowledge(question: str, limit: int = 3) -> str:
     if not keywords:
         return ''
 
-    # 统计每条知识命中的关键词数，按命中数排序取 top
+    # 统计每条知识命中的关键词数：question 字段权重高于 answer，按得分排序
     scored = []
     for r in rows:
-        text = (r['question'] or '') + ' ' + (r['answer'] or '')
-        score = sum(1 for kw in keywords if kw in text)
+        q_text = r['question'] or ''
+        a_text = r['answer'] or ''
+        score = sum(2 for kw in keywords if kw in q_text) + sum(1 for kw in keywords if kw in a_text)
         if score > 0:
             scored.append((score, r))
 
     scored.sort(key=lambda x: -x[0])
-    top = scored[:limit]
+
+    # 去重：相同 question 只保留得分最高的一条，避免重复记录挤占结果
+    seen = set()
+    uniq = []
+    for score, r in scored:
+        if r['question'] in seen:
+            continue
+        seen.add(r['question'])
+        uniq.append((score, r))
+
+    top = uniq[:limit]
     if not top:
         return ''
 
@@ -106,6 +171,53 @@ def recognize_image(file_bytes: bytes, filename: str) -> str:
     return answer.strip()
 
 
+def parse_document(file_bytes: bytes, filename: str) -> str:
+    """解析文档（docx/pdf/pptx/xlsx），提取文字内容。"""
+    import io
+    ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else ''
+    try:
+        if ext == 'doc':
+            import subprocess
+            import tempfile
+            import os
+            with tempfile.NamedTemporaryFile(suffix='.doc', delete=False) as f:
+                f.write(file_bytes)
+                tmp = f.name
+            try:
+                result = subprocess.run(['antiword', tmp], capture_output=True, text=True, timeout=30)
+                return result.stdout.strip()
+            finally:
+                os.unlink(tmp)
+        if ext == 'docx':
+            import docx
+            doc = docx.Document(io.BytesIO(file_bytes))
+            return '\n'.join(p.text for p in doc.paragraphs if p.text.strip())
+        if ext == 'pdf':
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype='pdf')
+            return '\n'.join(page.get_text() for page in doc)
+        if ext == 'pptx':
+            import pptx
+            prs = pptx.Presentation(io.BytesIO(file_bytes))
+            parts = []
+            for slide in prs.slides:
+                for shape in slide.shapes:
+                    if shape.has_text_frame:
+                        parts.append(shape.text_frame.text)
+            return '\n'.join(parts)
+        if ext in ('xlsx', 'xls'):
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True)
+            parts = []
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    parts.append(' '.join(str(c) for c in row if c is not None))
+            return '\n'.join(parts)
+        return ''
+    except Exception:
+        return ''
+
+
 def chat_stream(user_id: str, question: str):
     """流式调用 Coze，逐条 yield 事件字典 {type: delta/done/error, content}。"""
     key = question.strip()
@@ -153,11 +265,13 @@ def chat_stream(user_id: str, question: str):
         has_error = True
         yield {'type': 'error', 'content': str(exc)}
     finally:
-        # 成功后缓存完整回复（LRU 淘汰）
+        # 成功后缓存完整回复（内存 LRU + SQLite 持久化）
         if full_reply and not has_error:
             _cache[key] = full_reply
+            _persist(key, full_reply)
             if len(_cache) > _CACHE_MAX:
-                _cache.popitem(last=False)
+                evicted_key, _ = _cache.popitem(last=False)
+                _remove(evicted_key)
 
 
 def summarize_title(dialog_text: str) -> str:

@@ -13,3 +13,12 @@ test/*.wav
 
 # 系统文件
 .DS_Store
+
+# 部署脚本（含服务器密码，不提交）
+deploy.py
+fix_server.py
+fix_server2.py
+update.py
+
+# 部署打包文件
+*.tar.gz

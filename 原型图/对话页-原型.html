@@ -97,7 +97,8 @@
     background: var(--primary); color: #fff;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; font-size: 16px;
-  }
+    object-fit: cover;
+}
   .bubble {
     max-width: 76%;
     padding: 12px 16px;
@@ -169,7 +170,7 @@
     <!-- 聊天区 -->
     <div class="chat" id="chat">
       <div class="msg ai">
-        <div class="ai-avatar">校</div>
+        <img class="ai-avatar" src="logo.jpg" alt="AI">
         <div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>
       </div>
     </div>
@@ -215,7 +216,7 @@
     const msg = document.createElement('div');
     msg.className = 'msg ' + role;
     let html = '';
-    if (role === 'ai') html += '<div class="ai-avatar">校</div>';
+    if (role === 'ai') html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
     html += '<div class="bubble">' + text + '</div>';
     msg.innerHTML = html;
     chat.appendChild(msg);
@@ -274,7 +275,7 @@
   function newChat() {
     chat.innerHTML =
       '<div class="msg ai">' +
-      '<div class="ai-avatar">校</div>' +
+      '<img class="ai-avatar" src="logo.jpg" alt="AI">' +
       '<div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>' +
       '</div>';
     input.focus();

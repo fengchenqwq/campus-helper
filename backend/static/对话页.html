@@ -97,7 +97,8 @@
     background: var(--primary); color: #fff;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0; font-size: 16px;
-  }
+    object-fit: cover;
+}
   .bubble {
     max-width: 76%;
     padding: 12px 16px;
@@ -161,6 +162,99 @@
   }
   .send-btn:hover { background: var(--primary-hover); }
   .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ===== 反馈按钮 ===== */
+  .msg-body { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 76%; }
+  .msg-body .bubble { max-width: 100%; }
+  .msg-img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+    cursor: pointer;
+  }
+  .msg-file {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: var(--input-bg);
+    border-radius: 12px;
+    font-size: 14px; color: var(--text);
+    max-width: 260px;
+    word-break: break-all;
+    cursor: pointer;
+  }
+  .chat-container.drag-over {
+    border-color: var(--primary);
+    background: rgba(77, 107, 254, .04);
+  }
+  .attach-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px 0;
+    flex-wrap: wrap;
+  }
+  .attach-item { position: relative; }
+  .attach-item img {
+    width: 56px; height: 56px;
+    object-fit: cover; border-radius: 8px;
+    cursor: pointer; display: block;
+  }
+  .attach-item.attach-file {
+    padding: 8px 12px; background: var(--input-bg);
+    border-radius: 8px; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+    max-width: 220px; word-break: break-all;
+  }
+  .attach-del {
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,.55); color: #fff;
+    border-radius: 50%; font-size: 12px;
+    line-height: 18px; text-align: center; cursor: pointer;
+  }
+  .img-preview-modal { padding: 10px; width: auto; max-width: 95vw; background: transparent; box-shadow: none; }
+  .img-preview-modal img { max-width: 95vw; max-height: 90vh; border-radius: 10px; display: block; }
+  .feedback-btn {
+    font-size: 12px; color: #a8abb2;
+    border: none; background: transparent;
+    cursor: pointer; padding: 2px 8px; border-radius: 6px;
+  }
+  .feedback-btn:hover { color: var(--primary); background: rgba(77,107,254,.06); }
+
+  /* ===== 反馈弹窗 ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    width: 90%; max-width: 380px;
+    background: #fff; border-radius: 16px;
+    padding: 24px 20px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.15);
+    text-align: center;
+  }
+  .modal-icon { font-size: 36px; margin-bottom: 10px; }
+  .modal-text { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions button {
+    flex: 1; padding: 11px;
+    border-radius: 12px; font-size: 14px; cursor: pointer;
+    border: none;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-secondary { background: var(--input-bg); color: var(--text-secondary); }
+  #feedbackModal .modal { text-align: left; }
+  #feedbackModal textarea, #feedbackModal select {
+    width: 100%; margin-bottom: 12px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-family: inherit; background: var(--input-bg);
+    color: var(--text); outline: none; resize: none; box-sizing: border-box;
+  }
+  #feedbackModal select { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -183,10 +277,13 @@
     <!-- 聊天区 -->
     <div class="chat" id="chat">
       <div class="msg ai">
-        <div class="ai-avatar">校</div>
+        <img class="ai-avatar" src="logo.jpg" alt="AI">
         <div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>
       </div>
     </div>
+
+    <!-- 待发送附件区 -->
+    <div class="attach-bar" id="attachBar" style="display:none"></div>
 
     <!-- 底部输入栏 -->
     <div class="input-bar">
@@ -204,22 +301,161 @@
   const sendBtn = document.getElementById('sendBtn');
   const chat = document.getElementById('chat');
 
-  // 登录态：已登录则保存 user_id；未登录为匿名对话（不保存历史）
+  // 登录态：未登录跳转登录页
   const userId = localStorage.getItem('user_id');
+  if (!userId) {
+    window.location.href = '登录注册.html';
+  }
   let conversationId = null; // 当前会话 ID，null 表示新对话
 
   // ===== 消息渲染 =====
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   function addMsg(role, text) {
     const msg = document.createElement('div');
     msg.className = 'msg ' + role;
     let html = '';
-    if (role === 'ai') html += '<div class="ai-avatar">校</div>';
-    html += '<div class="bubble">' + text + '</div>';
+    if (role === 'ai') {
+      html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+      html += '<div class="msg-body"><div class="bubble">' + text + '</div>' +
+              '<button class="feedback-btn" onclick="openFeedback()">💬 反馈</button></div>';
+    } else {
+      html += '<div class="bubble">' + text + '</div>';
+    }
     msg.innerHTML = html;
     chat.appendChild(msg);
     scrollToBottom();
     return msg;
   }
+
+  function openImgPreview(url) {
+    document.getElementById('imgPreviewImg').src = url;
+    document.getElementById('imgPreviewModal').classList.add('show');
+  }
+  function closeImgPreview() {
+    document.getElementById('imgPreviewModal').classList.remove('show');
+  }
+
+  function addImgMsg(role, imgUrl) {
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+    html += '<div class="msg-body"><img class="msg-img" src="' + imgUrl + '" alt="图片" onclick="window.open(\'' + imgUrl + '\')"></div>';
+    msg.innerHTML = html;
+    chat.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  async function recognizeDocumentText(file) {
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const resp = await fetch(BASE_URL + '/document', { method: 'POST', body: fd });
+      const result = await resp.json();
+      return (result.code === 0 && result.data && result.data.text) ? result.data.text : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  let sentFiles = [];
+
+  function addFileMsg(role, fileName, fileObj) {
+    const idx = sentFiles.length;
+    sentFiles.push(fileObj);
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    let html = '';
+    if (role === 'ai') html += '<img class="ai-avatar" src="logo.jpg" alt="AI">';
+    html += '<div class="msg-body"><div class="msg-file" onclick="viewDocument(' + idx + ')">📄 ' + escapeHtml(fileName) + '</div></div>';
+    msg.innerHTML = html;
+    chat.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  async function viewDocument(idx) {
+    const file = sentFiles[idx];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const resp = await fetch(BASE_URL + '/upload', { method: 'POST', body: fd });
+      const result = await resp.json();
+      if (result.code === 0 && result.data && result.data.url) {
+        const url = result.data.url;
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext)) {
+          window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url));
+        } else {
+          window.open(url);
+        }
+      } else {
+        alert(result.message || '上传失败');
+      }
+    } catch (err) {
+      alert('请求失败，请检查网络');
+    }
+  }
+
+  // ===== 待发送附件管理 =====
+  let pendingAttachments = [];
+
+  function handleDroppedFile(file) {
+    if (!userId) return;
+    pendingAttachments.push({
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      file: file,
+      url: URL.createObjectURL(file),
+    });
+    renderAttachments();
+    sendBtn.disabled = false;
+  }
+
+  function renderAttachments() {
+    const bar = document.getElementById('attachBar');
+    if (pendingAttachments.length === 0) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+    bar.style.display = 'flex';
+    bar.innerHTML = pendingAttachments.map((att, i) => {
+      if (att.type === 'image') {
+        return '<div class="attach-item">' +
+          '<img src="' + att.url + '" onclick="window.open(\'' + att.url + '\')">' +
+          '<span class="attach-del" onclick="removeAttachment(' + i + ')">×</span></div>';
+      } else {
+        return '<div class="attach-item attach-file" onclick="window.open(\'' + att.url + '\')">📄 ' + escapeHtml(att.file.name) +
+          '<span class="attach-del" onclick="event.stopPropagation(); removeAttachment(' + i + ')">×</span></div>';
+      }
+    }).join('');
+  }
+
+  function removeAttachment(i) {
+    pendingAttachments.splice(i, 1);
+    renderAttachments();
+    sendBtn.disabled = input.value.trim() === '' && pendingAttachments.length === 0;
+  }
+
+  document.querySelector('.chat-container').addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  });
+  document.querySelector('.chat-container').addEventListener('dragleave', (e) => {
+    e.currentTarget.classList.remove('drag-over');
+  });
+  document.querySelector('.chat-container').addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    for (const file of e.dataTransfer.files) {
+      handleDroppedFile(file);
+    }
+  });
 
   // 「思考中」三点动画指示
   function showTyping() {
@@ -227,7 +463,7 @@
     msg.className = 'msg ai';
     msg.id = 'typingIndicator';
     msg.innerHTML =
-      '<div class="ai-avatar">校</div>' +
+      '<img class="ai-avatar" src="logo.jpg" alt="AI">' +
       '<div class="bubble"><span class="typing-dots"><span></span><span></span><span></span></span></div>';
     chat.appendChild(msg);
     scrollToBottom();
@@ -261,16 +497,77 @@
   }
 
   // ===== 发送（流式读取） =====
+  async function compressImage(file, maxSize = 1280, quality = 0.8) {
+    if (!file.type.startsWith('image/')) return file;
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        if (ratio >= 1) { resolve(file); return; }
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
+  async function recognizeImageText(file) {
+    const compressed = await compressImage(file);
+    const fd = new FormData();
+    fd.append('file', compressed, 'image.jpg');
+    try {
+      const resp = await fetch(BASE_URL + '/image', { method: 'POST', body: fd });
+      const result = await resp.json();
+      return (result.code === 0 && result.data && result.data.text) ? result.data.text : '';
+    } catch (err) {
+      return '';
+    }
+  }
+
   async function send() {
     const text = input.value.trim();
-    if (!text) return;
-    addMsg('user', text);
+    const atts = pendingAttachments.slice();
+    if (!text && atts.length === 0) return;
+
+    // 1. 显示用户消息（附件在上，文字在下）
+    for (const att of atts) {
+      if (att.type === 'image') addImgMsg('user', att.url);
+      else addFileMsg('user', att.file.name, att.file);
+    }
+    if (text) addMsg('user', text);
+
+    // 2. 清空输入框和附件
     input.value = '';
     input.style.height = 'auto';
+    pendingAttachments = [];
+    renderAttachments();
     sendBtn.disabled = true;
 
-    // 构造请求体：已登录带 user_id 与 conversation_id，匿名仅带 content
-    const body = { content: text };
+    // 3. 解析附件内容（图片识别 + 文档解析），与用户文字连接后一起发给 AI
+    let content = text;
+    const fileParts = [];
+    for (const att of atts) {
+      if (att.type === 'image') {
+        const recognized = await recognizeImageText(att.file);
+        fileParts.push('【图片】\n' + (recognized || '（图片中未识别到文字）'));
+      } else {
+        const parsed = await recognizeDocumentText(att.file);
+        fileParts.push('【文件「' + att.file.name + '」】\n' + (parsed || '（无法解析文件内容）'));
+      }
+    }
+    if (fileParts.length > 0) {
+      content = ('以下是用户上传的附件内容：\n' + fileParts.join('\n\n') +
+        (content ? '\n\n用户的要求：\n' + content : '')).trim();
+    }
+
+    // 构造请求体：带 user_id 与 conversation_id
+    const body = { content: content };
     if (userId) {
       body.user_id = Number(userId);
       if (conversationId) body.conversation_id = conversationId;
@@ -335,7 +632,7 @@
       removeTyping();
       addMsg('ai', '请求失败，请确认后端服务已启动');
     } finally {
-      sendBtn.disabled = input.value.trim() === '';
+      sendBtn.disabled = input.value.trim() === '' && pendingAttachments.length === 0;
     }
   }
 
@@ -344,7 +641,7 @@
     conversationId = null;
     chat.innerHTML =
       '<div class="msg ai">' +
-      '<div class="ai-avatar">校</div>' +
+      '<img class="ai-avatar" src="logo.jpg" alt="AI">' +
       '<div class="bubble">你好，我是校园百事通助手！有什么校内问题都可以问我～</div>' +
       '</div>';
     input.focus();
@@ -352,7 +649,7 @@
 
   // 输入框自适应高度 + 回车发送
   input.addEventListener('input', () => {
-    sendBtn.disabled = input.value.trim() === '';
+    sendBtn.disabled = input.value.trim() === '' && pendingAttachments.length === 0;
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 120) + 'px';
   });
@@ -366,6 +663,71 @@
   // ===== 返回主页 =====
   function goHome() {
     window.location.href = '主页面.html';
+  }
+
+  // ===== 问题反馈 =====
+  let fbConversationId = null;
+  let fbSolved = null;
+
+  function openFeedback() {
+    fbConversationId = conversationId;
+    fbSolved = null;
+    document.getElementById('fbStep1').style.display = 'block';
+    document.getElementById('fbStepYes').style.display = 'none';
+    document.getElementById('fbStepNo').style.display = 'none';
+    document.getElementById('feedbackModal').classList.add('show');
+  }
+
+  function fbChoose(solved) {
+    fbSolved = solved;
+    document.getElementById('fbStep1').style.display = 'none';
+    if (solved) {
+      document.getElementById('fbStepYes').style.display = 'block';
+      document.getElementById('fbStepNo').style.display = 'none';
+    } else {
+      document.getElementById('fbStepYes').style.display = 'none';
+      document.getElementById('fbStepNo').style.display = 'block';
+    }
+  }
+
+  function closeFeedback() {
+    document.getElementById('feedbackModal').classList.remove('show');
+  }
+
+  async function fbSubmit() {
+    if (fbSolved === null) return;
+    const payload = { user_id: Number(userId), conversation_id: fbConversationId, solved: fbSolved };
+    if (fbSolved) {
+      const suggestion = document.getElementById('fbSuggestion').value.trim();
+      if (!suggestion) { closeFeedback(); return; }  // 选「是」且无建议：不产生数据
+      payload.suggestion = suggestion;
+    } else {
+      payload.category = document.getElementById('fbCategory').value;
+      const problem = document.getElementById('fbProblem').value.trim();
+      if (!problem) { alert('请描述您遇到的问题'); return; }
+      payload.problem = problem;
+      const suggestion = document.getElementById('fbSuggestion2').value.trim();
+      if (suggestion) payload.suggestion = suggestion;
+    }
+    try {
+      const resp = await fetch(BASE_URL + '/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await resp.json();
+      if (result.code === 0) {
+        alert('反馈提交成功，感谢您的反馈！');
+        closeFeedback();
+        document.getElementById('fbSuggestion').value = '';
+        document.getElementById('fbProblem').value = '';
+        document.getElementById('fbSuggestion2').value = '';
+      } else {
+        alert(result.message || '提交失败');
+      }
+    } catch (err) {
+      alert('请求失败，请检查网络');
+    }
   }
 
   // ===== 加载历史会话（回溯对话） =====
@@ -387,15 +749,105 @@
   }
 
   // 支持从主页面携带问题跳转（q）或回溯历史会话（conversation_id）
-  const params = new URLSearchParams(location.search);
-  const q = params.get('q');
-  const cid = params.get('conversation_id');
-  if (cid) {
-    loadConversation(cid);
-  } else if (q) {
-    input.value = q;
-    send();
+  function loadPendingImages() {
+    return new Promise((resolve) => {
+      try {
+        const req = indexedDB.open('school_pending', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('files', { keyPath: 'id' });
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('files', 'readonly');
+          const store = tx.objectStore('files');
+          const getReq = store.getAll();
+          getReq.onsuccess = () => {
+            const items = getReq.result || [];
+            const clearTx = db.transaction('files', 'readwrite');
+            clearTx.objectStore('files').clear();
+            db.close();
+            resolve(items);
+          };
+          getReq.onerror = () => { db.close(); resolve([]); };
+        };
+        req.onerror = () => resolve([]);
+      } catch (e) { resolve([]); }
+    });
   }
+
+  async function init() {
+    const items = await loadPendingImages();
+    for (const item of items) {
+      if (item.file) {
+        pendingAttachments.push({
+          type: item.file.type.startsWith('image/') ? 'image' : 'file',
+          file: item.file,
+          url: URL.createObjectURL(item.file),
+        });
+      }
+    }
+    renderAttachments();
+
+    const params = new URLSearchParams(location.search);
+    const q = params.get('q');
+    const cid = params.get('conversation_id');
+    if (cid) {
+      loadConversation(cid);
+    } else {
+      if (q) input.value = q;
+      if (q || pendingAttachments.length > 0) send();
+    }
+  }
+
+  init();
 </script>
+
+<!-- 问题反馈弹窗 -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-icon">💬</div>
+    <!-- 步骤1：是否解决 -->
+    <div id="fbStep1">
+      <p class="modal-text">请问本次回答是否解决了您的问题？</p>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbChoose(true)">是，已解决</button>
+        <button class="btn-secondary" onclick="fbChoose(false)">否，未解决</button>
+      </div>
+    </div>
+    <!-- 步骤2a：建议（选是） -->
+    <div id="fbStepYes" style="display:none">
+      <p class="modal-text">对我们的建议</p>
+      <textarea id="fbSuggestion" rows="3" placeholder="请输入您的建议（可留空）"></textarea>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbSubmit()">提交</button>
+        <button class="btn-secondary" onclick="closeFeedback()">取消</button>
+      </div>
+    </div>
+    <!-- 步骤2b：问题（选否） -->
+    <div id="fbStepNo" style="display:none">
+      <p class="modal-text">您在本次回答中出现了什么问题？</p>
+      <select id="fbCategory">
+        <option value="生活">生活</option>
+        <option value="教务">教务</option>
+        <option value="社团">社团</option>
+        <option value="FAQ">FAQ</option>
+        <option value="其他">其他</option>
+      </select>
+      <textarea id="fbProblem" rows="3" placeholder="请描述您遇到的问题"></textarea>
+      <p class="modal-text">对我们的建议（可留空）</p>
+      <textarea id="fbSuggestion2" rows="2" placeholder="请输入您的建议（可留空）"></textarea>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="fbSubmit()">提交</button>
+        <button class="btn-secondary" onclick="closeFeedback()">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 图片预览弹窗 -->
+<div class="modal-overlay" id="imgPreviewModal" onclick="closeImgPreview()">
+  <div class="modal img-preview-modal">
+    <img id="imgPreviewImg" src="" alt="图片预览">
+  </div>
+</div>
+
 </body>
 </html>

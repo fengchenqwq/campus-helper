@@ -65,7 +65,7 @@ def test_login(uid):
 
 def test_chat(uid):
     r = post_json('/api/chat', {'content': '图书馆怎么预约座位'})
-    check('匿名对话成功', r['code'] == 0 and bool(r['data'].get('ai_reply')))
+    check('匿名对话被拦截(1005)', r['code'] == 1005)
 
     r2 = post_json('/api/chat', {'user_id': uid, 'content': '补考政策是什么'})
     check('新对话成功', r2['code'] == 0 and bool(r2['data'].get('conversation_id')))

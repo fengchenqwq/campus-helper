@@ -43,7 +43,8 @@
     background: var(--primary);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-  }
+    object-fit: cover;
+}
   .logo svg { width: 20px; height: 20px; }
   .logo-title { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
 
@@ -68,6 +69,15 @@
     font-size: 14px;
   }
 
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .feedback-link {
+    font-size: 14px; color: var(--primary);
+    text-decoration: none; cursor: pointer;
+    padding: 6px 12px; border-radius: 10px;
+    transition: background .15s;
+  }
+  .feedback-link:hover { background: var(--input-bg); }
+
   /* ===== 中部主体 ===== */
   main {
     flex: 1;
@@ -79,6 +89,36 @@
   }
   .welcome { font-size: 30px; font-weight: 600; margin-bottom: 6px; text-align: center; }
   .subtitle { font-size: 15px; color: var(--text-secondary); margin-bottom: 34px; text-align: center; }
+
+  .attach-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 720px;
+  }
+  .attach-item { position: relative; }
+  .attach-item img {
+    width: 56px; height: 56px;
+    object-fit: cover; border-radius: 8px;
+    cursor: pointer; display: block;
+  }
+  .attach-del {
+    position: absolute; top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    background: rgba(0,0,0,.55); color: #fff;
+    border-radius: 50%; font-size: 12px;
+    line-height: 18px; text-align: center; cursor: pointer;
+  }
+  .attach-item.attach-file {
+    padding: 8px 12px;
+    background: var(--input-bg);
+    border-radius: 8px;
+    font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+    max-width: 220px;
+    word-break: break-all;
+  }
 
   .input-box {
     width: 100%;
@@ -115,6 +155,7 @@
     transition: background .15s;
   }
   .tool-btn:hover { background: #e8eaed; }
+  .tool-btn svg { width: 20px; height: 20px; }
   .send-btn {
     border: none; border-radius: 12px;
     background: var(--primary); color: #fff;
@@ -197,18 +238,13 @@
 <!-- 顶部：logo + 标题 / 右上角用户名 + 头像 -->
 <header>
   <div class="logo-area">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
-              fill="#fff"/>
-        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
-      </svg>
-    </div>
+    <img class="logo" src="logo.jpg" alt="logo">
     <span class="logo-title">校园百事通助手</span>
   </div>
-  <div class="user-area" id="userArea" onclick="onUserClick()"></div>
+  <div class="header-right">
+    <a class="feedback-link" id="feedbackLink" onclick="goFeedback()" style="display:none">查看问题反馈</a>
+    <div class="user-area" id="userArea" onclick="onUserClick()"></div>
+  </div>
 </header>
 
 <!-- 中部：输入对话框 -->
@@ -216,12 +252,18 @@
   <h1 class="welcome">你好，我是校园百事通助手</h1>
   <p class="subtitle">校园问题，随问随答</p>
 
+  <!-- 待发送附件区 -->
+  <div class="attach-bar" id="attachBar" style="display:none"></div>
+
   <div class="input-box">
     <textarea id="question" rows="1" placeholder="输入你的校园问题，按 Enter 发送"></textarea>
     <div class="toolbar">
       <div class="toolbar-left">
-        <button class="tool-btn" onclick="voiceInput()" title="语音输入">🎤</button>
-        <button class="tool-btn" onclick="photoInput()" title="拍照识别">📷</button>
+        <button class="tool-btn" onclick="fileInput()" title="文件传输">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 11.5l-9 9a5.5 5.5 0 0 1-7.8-7.8l9.5-9.5a3.5 3.5 0 0 1 5 5L10 18"/>
+          </svg>
+        </button>
       </div>
       <button class="send-btn" id="sendBtn" onclick="send()" disabled>发送</button>
     </div>
@@ -239,6 +281,8 @@
 <footer>
   <a class="history-link" onclick="goHistory()">查看历史记录</a>
 </footer>
+
+<input type="file" id="docInput" accept=".jpg,.jpeg,.png,.ppt,.pptx,.doc,.docx,.pdf,.xls,.xlsx" style="display:none">
 
 <!-- 未登录提示弹窗 -->
 <div class="modal-overlay" id="loginModal">
@@ -271,7 +315,10 @@
   // ===== 右上角用户区：根据登录状态渲染 =====
   function renderUserArea() {
     const username = localStorage.getItem('username');
+    const role = localStorage.getItem('role');
     const userArea = document.getElementById('userArea');
+    // 仅管理员显示「查看问题反馈」入口
+    document.getElementById('feedbackLink').style.display = (role === 'admin') ? 'inline-block' : 'none';
     if (username) {
       // 已登录：显示用户名 + 头像（用户名最后一个字）
       userArea.innerHTML =
@@ -298,7 +345,7 @@
 
   // 输入内容后启用发送按钮
   input.addEventListener('input', () => {
-    sendBtn.disabled = input.value.trim() === '';
+    sendBtn.disabled = input.value.trim() === '' && pendingImages.length === 0;
   });
 
   // 回车发送，Shift+Enter 换行
@@ -310,21 +357,92 @@
   });
 
   // 发送：输入文本后跳转到 AI 对话页面
-  function send() {
+  // ===== 待发送附件管理（图片 + 文档） =====
+  let pendingAttachments = [];
+
+  function renderAttachments() {
+    const bar = document.getElementById('attachBar');
+    if (pendingAttachments.length === 0) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+    bar.style.display = 'flex';
+    bar.innerHTML = pendingAttachments.map((att, i) => {
+      if (att.type === 'image') {
+        return '<div class="attach-item"><img src="' + att.url + '" onclick="window.open(\'' + att.url + '\')">' +
+          '<span class="attach-del" onclick="removeAttachment(' + i + ')">×</span></div>';
+      } else {
+        return '<div class="attach-item attach-file" onclick="window.open(\'' + att.url + '\')">📄 ' + escapeHtml(att.file.name) +
+          '<span class="attach-del" onclick="event.stopPropagation(); removeAttachment(' + i + ')">×</span></div>';
+      }
+    }).join('');
+  }
+
+  function removeAttachment(i) {
+    pendingAttachments.splice(i, 1);
+    renderAttachments();
+    sendBtn.disabled = input.value.trim() === '' && pendingAttachments.length === 0;
+  }
+
+  function savePendingAttachments(atts) {
+    return new Promise((resolve) => {
+      try {
+        const req = indexedDB.open('school_pending', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('files', { keyPath: 'id' });
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('files', 'readwrite');
+          const store = tx.objectStore('files');
+          store.clear();
+          atts.forEach((att, i) => store.put({ id: i, file: att.file, name: att.file.name, type: att.file.type }));
+          tx.oncomplete = () => { db.close(); resolve(); };
+        };
+        req.onerror = () => resolve();
+      } catch (e) { resolve(); }
+    });
+  }
+
+  function addAttachment(file) {
+    pendingAttachments.push({
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      file: file,
+      url: URL.createObjectURL(file),
+    });
+    renderAttachments();
+    sendBtn.disabled = false;
+  }
+
+  // 拖拽文件到主页面
+  document.querySelector('main').addEventListener('dragover', (e) => e.preventDefault());
+  document.querySelector('main').addEventListener('drop', (e) => {
+    e.preventDefault();
+    for (const file of e.dataTransfer.files) {
+      addAttachment(file);
+    }
+  });
+
+  async function send() {
     const text = input.value.trim();
-    if (!text) return;
-    window.location.href = '对话页.html?q=' + encodeURIComponent(text);
+    if (!text && pendingAttachments.length === 0) return;
+    if (pendingAttachments.length > 0) {
+      await savePendingAttachments(pendingAttachments);
+    }
+    const q = text ? '?q=' + encodeURIComponent(text) : '';
+    window.location.href = '对话页.html' + q;
   }
 
-  // 语音输入
-  function voiceInput() {
-    alert('语音输入（待开发）：语音转文字后提问');
+  // 文件传输：选择文件加入待发送附件
+  function fileInput() {
+    document.getElementById('docInput').click();
   }
 
-  // 拍照识别
-  function photoInput() {
-    alert('拍照识别（待开发）：拍照识别图中内容后提问');
-  }
+  document.getElementById('docInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    addAttachment(file);
+    e.target.value = '';
+  });
 
   // 跳转登录/注册页面
   function goLogin() {
@@ -340,6 +458,11 @@
     }
   }
 
+  // 管理员查看问题反馈
+  function goFeedback() {
+    window.location.href = '问题反馈.html';
+  }
+
   // 关闭弹窗
   function closeModal() {
     document.getElementById('loginModal').classList.remove('show');
@@ -349,6 +472,7 @@
   function doLogout() {
     localStorage.removeItem('user_id');
     localStorage.removeItem('username');
+    localStorage.removeItem('role');
     window.location.reload();
   }
 

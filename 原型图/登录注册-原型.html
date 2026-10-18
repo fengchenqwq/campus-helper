@@ -51,7 +51,8 @@
     width: 36px; height: 36px; border-radius: 10px;
     background: var(--primary);
     display: flex; align-items: center; justify-content: center;
-  }
+    object-fit: cover;
+}
   .logo svg { width: 22px; height: 22px; }
   .logo-title { font-size: 22px; font-weight: 600; letter-spacing: .5px; }
   .page-subtitle { font-size: 14px; color: var(--text-secondary); margin-top: 6px; }
@@ -186,15 +187,7 @@
     返回主页
   </a>
   <div class="logo-area">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4 3.5V5.5z"
-              fill="#fff"/>
-        <circle cx="9" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="12" cy="10" r="1.1" fill="#4D6BFE"/>
-        <circle cx="15" cy="10" r="1.1" fill="#4D6BFE"/>
-      </svg>
-    </div>
+    <img class="logo" src="logo.jpg" alt="logo">
     <span class="logo-title">校园百事通助手</span>
   </div>
   <p class="page-subtitle">登录 / 注册</p>

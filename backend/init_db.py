@@ -18,6 +18,7 @@ def init_db():
         username    TEXT    NOT NULL UNIQUE,
         password    TEXT    NOT NULL,
         email       TEXT    NOT NULL UNIQUE,
+        role        TEXT    NOT NULL DEFAULT 'user',
         created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -48,10 +49,39 @@ def init_db():
         created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS answer_cache (
+        question   TEXT PRIMARY KEY,
+        answer     TEXT NOT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS feedback (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id          INTEGER NOT NULL,
+        conversation_id  INTEGER,
+        solved           INTEGER NOT NULL,
+        category         TEXT,
+        problem          TEXT,
+        suggestion       TEXT,
+        created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_conv_user_time ON conversations (user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_msg_conv_time  ON messages (conversation_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_knowledge_cat  ON knowledge (category);
     ''')
+
+    # 迁移：给已有 users 表补 role 字段（服务器旧库无此列）
+    cols = [r[1] for r in cur.execute('PRAGMA table_info(users)').fetchall()]
+    if 'role' not in cols:
+        cur.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+
+    # 预置管理员账号（不存在则创建，已存在则提升为管理员）
+    cur.execute(
+        "INSERT OR IGNORE INTO users (username, password, email, role) VALUES ('admin', '123456', 'admin@school.com', 'admin')"
+    )
+    cur.execute("UPDATE users SET role='admin' WHERE username='admin'")
 
     # 导入知识库
     if KNOWLEDGE_PATH.exists():
